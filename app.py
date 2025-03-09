@@ -6,6 +6,8 @@ from PIL import Image
 
 from ai_service import AITutorService
 from study_planner import StudyPlanner
+from onboarding import OnboardingManager
+from assessment import AssessmentManager
 from config import ALLOWED_SUBJECTS, APP_NAME
 from student_manager import StudentManager
 
@@ -13,7 +15,14 @@ from student_manager import StudentManager
 # Initialize services
 @st.cache_resource
 def init_services():
-    return AITutorService(), StudentManager(), StudyPlanner()
+    student_manager = StudentManager()
+    return (
+        AITutorService(),
+        student_manager,
+        StudyPlanner(),
+        OnboardingManager(student_manager),
+        AssessmentManager(student_manager)
+    )
 
 
 # App configuration
@@ -25,7 +34,7 @@ st.set_page_config(
 )
 
 # Initialize services
-ai_tutor, student_manager, study_planner = init_services()
+ai_tutor, student_manager, study_planner, onboarding_manager, assessment_manager = init_services()
 
 # Custom CSS
 st.markdown("""
@@ -118,12 +127,38 @@ st.markdown("""
         margin: 5px 0;
         color: white;
     }
+    .nav-button {
+        background-color: #1E88E5;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 5px;
+        margin: 5px;
+        text-align: center;
+        cursor: pointer;
+    }
+    .back-button {
+        background-color: #424242;
+        color: white;
+        padding: 5px 15px;
+        border-radius: 5px;
+        margin: 5px;
+        text-align: center;
+        cursor: pointer;
+    }
 </style>
 """, unsafe_allow_html=True)
 
 # Session state initialization
 if "student_id" not in st.session_state:
     st.session_state.student_id = None
+if "onboarding_complete" not in st.session_state:
+    st.session_state.onboarding_complete = False
+if "assessment_complete" not in st.session_state:
+    st.session_state.assessment_complete = False
+if "current_view" not in st.session_state:
+    st.session_state.current_view = "main"
+if "navigation_history" not in st.session_state:
+    st.session_state.navigation_history = []
 if "subject" not in st.session_state:
     st.session_state.subject = "math"
 if "chat_history" not in st.session_state:
@@ -140,6 +175,18 @@ if "current_plan" not in st.session_state:
     st.session_state.current_plan = None
 
 
+def navigate_to(view):
+    """Handle navigation between views"""
+    st.session_state.navigation_history.append(st.session_state.current_view)
+    st.session_state.current_view = view
+    st.rerun()
+
+def go_back():
+    """Handle navigation back"""
+    if st.session_state.navigation_history:
+        st.session_state.current_view = st.session_state.navigation_history.pop()
+        st.rerun()
+
 def display_login():
     """Display login/registration form"""
     st.markdown('<h1 class="main-header">AI Learning Companion</h1>', unsafe_allow_html=True)
@@ -153,6 +200,7 @@ def display_login():
         if st.button("Login"):
             if student_manager.student_exists(login_id):
                 st.session_state.student_id = login_id
+                st.session_state.onboarding_complete = False
                 st.rerun()
             else:
                 st.error("Student ID not found. Please register first.")
@@ -171,6 +219,64 @@ def display_login():
                     st.error("Student ID already exists. Please choose another.")
             else:
                 st.error("Please fill all fields.")
+
+
+def display_main_menu():
+    """Display the main menu after onboarding"""
+    st.markdown("## Welcome to Your Learning Dashboard 🎓")
+    
+    # Display VARK profile if available
+    student_data = student_manager.get_student_data(st.session_state.student_id)
+    if "detailed_preferences" in student_data and "vark" in student_data["detailed_preferences"]:
+        st.subheader("Your Learning Style Profile")
+        col1, col2, col3, col4 = st.columns(4)
+        vark = student_data["detailed_preferences"]["vark"]
+        with col1:
+            st.metric("Visual", f"{vark.get('visual', 0):.0f}%")
+        with col2:
+            st.metric("Auditory", f"{vark.get('auditory', 0):.0f}%")
+        with col3:
+            st.metric("Reading/Writing", f"{vark.get('reading_writing', 0):.0f}%")
+        with col4:
+            st.metric("Kinesthetic", f"{vark.get('kinesthetic', 0):.0f}%")
+    
+    # Main navigation options
+    st.divider()
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        if st.button("📚 Study Planner", use_container_width=True):
+            navigate_to("study_planner")
+            
+    with col2:
+        if st.button("🎯 Course Explorer", use_container_width=True):
+            navigate_to("courses")
+            
+    with col3:
+        if st.button("📊 Analytics Dashboard", use_container_width=True):
+            navigate_to("analytics")
+
+    # Quick access to recent activities and progress
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        st.subheader("Recent Activities")
+        if student_data["session_history"]:
+            for session in student_data["session_history"][-5:]:
+                st.info(f"{session['subject'].capitalize()}: {session['topic']} - Score: {session['score']}%")
+        else:
+            st.info("No activities yet. Start your learning journey!")
+            
+    with col2:
+        st.subheader("Quick Stats")
+        if "assessments" in student_data:
+            latest_assessment = student_data["assessments"][-1]
+            st.write("Latest Assessment Scores:")
+            for subject, data in latest_assessment["results"].items():
+                st.metric(subject.capitalize(), f"{data['score']:.1f}%")
+        else:
+            if st.button("Take Initial Assessment"):
+                navigate_to("assessment")
 
 
 def display_chat():
@@ -345,7 +451,6 @@ def display_study_planner():
                             st.rerun()
         else:
             # Display current plan
-            plan = current_plan["plan"]
             st.markdown("### Current Study Plan")
             st.markdown(f"**Goals:** {current_plan['goals']}")
             
@@ -356,7 +461,7 @@ def display_study_planner():
                 st.write(f"Progress: {progress['completion_rate']:.1f}% ({progress['completed_tasks']}/{progress['total_tasks']} tasks completed)")
             
             # Daily schedule
-            for day, schedule in plan["daily_schedules"].items():
+            for day, schedule in current_plan["daily_schedules"].items():
                 with st.expander(f"📅 {day}"):
                     for session in schedule["sessions"]:
                         col1, col2, col3 = st.columns([3, 1, 1])
@@ -388,10 +493,23 @@ def display_study_planner():
                 placeholder="Example: I need more time for math, prefer studying in the morning...")
             if st.button("Adjust Plan"):
                 if feedback:
-                    adjusted_plan = study_planner.adjust_plan(current_plan["plan"], feedback)
+                    adjusted_plan = study_planner.adjust_plan(current_plan, feedback)
                     if student_manager.save_study_plan(st.session_state.student_id, adjusted_plan, current_plan["goals"]):
                         st.success("Plan adjusted successfully!")
                         st.rerun()
+
+
+def display_analytics():
+    """Display the analytics dashboard"""
+    st.markdown("## Performance Analytics Dashboard 📊")
+    
+    # Show back button
+    if st.button("⬅️ Back to Main Menu"):
+        navigate_to("main")
+        return
+    
+    # Display analytics dashboard
+    assessment_manager.display_analytics_dashboard(st.session_state.student_id)
 
 
 def main():
@@ -399,86 +517,71 @@ def main():
     if not st.session_state.student_id:
         display_login()
     else:
-        # Get student data
-        student_data = student_manager.get_student_data(st.session_state.student_id)
-
-        # Sidebar
-        with st.sidebar:
-            st.image("https://img.icons8.com/color/96/000000/student-male--v1.png", width=100)
-            st.subheader(f"Welcome, {student_data['name']}!")
-            st.write(f"Grade: {student_data['grade']}")
-
-            # Display badges
-            if student_data["badges"]:
-                st.subheader("Your Badges")
-                badges_html = ""
-                for badge in student_data["badges"]:
-                    badges_html += f'<div class="badge">{badge}</div>'
-                st.markdown(badges_html, unsafe_allow_html=True)
-
-            st.divider()
-
-            # Subject selection
-            st.subheader("Select Subject")
-            subject = st.radio(
-                "",
-                ALLOWED_SUBJECTS,
-                format_func=lambda x: x.capitalize(),
-                index=ALLOWED_SUBJECTS.index(st.session_state.subject)
-            )
-
-            if subject != st.session_state.subject:
-                st.session_state.subject = subject
-                st.session_state.chat_history = []
+        # Check if initial assessment is complete
+        if not st.session_state.assessment_complete:
+            if assessment_manager.conduct_initial_assessment(st.session_state.student_id):
+                st.session_state.assessment_complete = True
                 st.rerun()
-
-            st.divider()
-
-            # Settings
-            st.subheader("Settings")
-            language = st.selectbox(
-                "Language",
-                ["en", "es", "fr", "de", "zh", "hi", "ar", "ru"],
-                format_func=lambda x: {
-                    "en": "English", "es": "Spanish", "fr": "French",
-                    "de": "German", "zh": "Chinese", "hi": "Hindi",
-                    "ar": "Arabic", "ru": "Russian"
-                }.get(x, x),
-                index=0
-            )
-            student_data["preferences"]["language"] = language
-
-            difficulty = st.select_slider(
-                "Difficulty Level",
-                options=["easy", "medium", "hard"],
-                value=student_data["preferences"]["difficulty_level"]
-            )
-            student_data["preferences"]["difficulty_level"] = difficulty
-
-            # Save preferences
-            student_manager.update_student_data(st.session_state.student_id, student_data)
-
-            st.divider()
-
-            # Logout button
-            if st.button("Logout"):
-                st.session_state.student_id = None
+        # Check if onboarding is complete
+        elif not st.session_state.onboarding_complete:
+            if onboarding_manager.collect_preferences(st.session_state.student_id):
+                st.session_state.onboarding_complete = True
                 st.rerun()
+        else:
+            # Get student data
+            student_data = student_manager.get_student_data(st.session_state.student_id)
 
-        # Main content
-        tab1, tab2, tab3, tab4 = st.tabs(["Study Planner", "Tutor Chat", "Practice Questions", "My Progress"])
+            # Sidebar
+            with st.sidebar:
+                st.image("https://img.icons8.com/color/96/000000/student-male--v1.png", width=100)
+                st.subheader(f"Welcome, {student_data['name']}!")
+                st.write(f"Grade: {student_data['grade']}")
 
-        with tab1:
-            display_study_planner()
+                # Display badges
+                if student_data["badges"]:
+                    st.subheader("Your Badges")
+                    badges_html = ""
+                    for badge in student_data["badges"]:
+                        badges_html += f'<div class="badge">{badge}</div>'
+                    st.markdown(badges_html, unsafe_allow_html=True)
 
-        with tab2:
-            display_chat()
+                st.divider()
 
-        with tab3:
-            display_practice()
+                # Quick navigation
+                st.subheader("Quick Navigation")
+                if st.button("🏠 Home"):
+                    navigate_to("main")
+                if st.button("📊 Analytics"):
+                    navigate_to("analytics")
+                if st.button("⚙️ Update Preferences"):
+                    st.session_state.onboarding_complete = False
+                    st.rerun()
+                if st.button("📝 Study Notes"):
+                    navigate_to("notes")
+                
+                st.divider()
 
-        with tab4:
-            display_progress()
+                # Logout button
+                if st.button("Logout"):
+                    for key in st.session_state.keys():
+                        del st.session_state[key]
+                    st.rerun()
+
+            # Main content based on current view
+            if st.session_state.current_view == "main":
+                display_main_menu()
+            elif st.session_state.current_view == "study_planner":
+                display_study_planner()
+            elif st.session_state.current_view == "courses":
+                onboarding_manager.show_course_options(st.session_state.student_id)
+            elif st.session_state.current_view == "analytics":
+                display_analytics()
+            elif st.session_state.current_view == "assessment":
+                if assessment_manager.conduct_initial_assessment(st.session_state.student_id):
+                    navigate_to("main")
+            elif st.session_state.current_view == "notes":
+                st.markdown("## 📝 Study Notes")
+                st.info("This feature is coming soon!")
 
 
 if __name__ == "__main__":
