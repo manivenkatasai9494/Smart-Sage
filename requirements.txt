@@ -1,0 +1,10 @@
+streamlit
+google-generativeai
+Pillow
+pytesseract
+langdetect
+gTTS
+pandas
+matplotlib
+seaborn
+python-dotenv

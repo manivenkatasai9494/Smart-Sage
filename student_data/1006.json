@@ -1,0 +1,50 @@
+{
+    "student_id": "1006",
+    "name": "maniii",
+    "grade": 1,
+    "created_at": "2025-03-09T12:41:50.930209",
+    "subjects": {
+        "math": {
+            "topics": {},
+            "overall_score": 0,
+            "questions_answered": 0
+        },
+        "physics": {
+            "topics": {},
+            "overall_score": 0,
+            "questions_answered": 0
+        },
+        "chemistry": {
+            "topics": {},
+            "overall_score": 0,
+            "questions_answered": 0
+        }
+    },
+    "session_history": [],
+    "badges": [],
+    "preferences": {
+        "language": "en",
+        "difficulty_level": "medium"
+    },
+    "study_plans": [
+        {
+            "id": 1,
+            "created_at": "2025-03-09T12:57:25.639603",
+            "goals": "i want to become IAS",
+            "plan": {
+                "text": "```json\n{\n  \"Monday\": {\n    \"8:00 - 9:00\": {\n      \"subject\": \"Language Arts\",\n      \"topic\": \"Reading comprehension: Simple stories with pictures\",\n      \"method\": \"Read aloud, discuss the story, identify main characters and setting.\",\n      \"progress_check\": \"Ask questions about the story, have the student retell it in their own words.\"\n    },\n    \"9:00 - 9:15\": {\n      \"activity\": \"Break - Outdoor play or physical activity\"\n    },\n    \"9:15 - 10:15\": {\n      \"subject\": \"Mathematics\",\n      \"topic\": \"Number recognition and counting (1-20)\",\n      \"method\": \"Use manipulatives like blocks or counters, practice writing numbers, play counting games.\",\n      \"progress_check\": \"Worksheet with number writing and counting exercises.\"\n    },\n    \"10:15 - 10:30\": {\n      \"activity\": \"Break - Snack and free time\"\n    },\n    \"10:30 - 11:30\": {\n      \"subject\": \"Environmental Science\",\n      \"topic\": \"Plants and animals in our surroundings\",\n      \"method\": \"Nature walk, observe plants and animals, draw and label them.\",\n      \"progress_check\": \"Discuss observations, identify different types of plants and animals.\"\n    },\n    \"11:30 - 12:30\": {\n      \"subject\": \"Art and Creativity\",\n      \"topic\": \"Drawing and coloring\",\n      \"method\": \"Free drawing, coloring pages, simple crafts.\",\n      \"progress_check\": \"Encourage creativity and self-expression.\"\n    }\n  },\n  \"Tuesday\": {\n    \"8:00 - 9:00\": {\n      \"subject\": \"Language Arts\",\n      \"topic\": \"Phonics: Letter sounds and blending\",\n      \"method\": \"Flashcards, phonics games, practice blending sounds to form words.\",\n      \"progress_check\": \"Read simple CVC words.\"\n    },\n    \"9:00 - 9:15\": {\n      \"activity\": \"Break -  Indoor quiet activity like puzzles\"\n    },\n    \"9:15 - 10:15\": {\n      \"subject\": \"Mathematics\",\n      \"topic\": \"Shapes and patterns\",\n      \"method\": \"Identify and name basic shapes, create patterns with blocks or drawings.\",\n      \"progress_check\": \"Worksheet with shape identification and pattern completion exercises.\"\n    },\n    \"10:15 - 10:30\": {\n      \"activity\": \"Break - Snack and story time\"\n    },\n    \"10:30 - 11:30\": {\n      \"subject\": \"General Knowledge\",\n      \"topic\": \"My family and community\",\n      \"method\": \"Discuss family members, roles, and community helpers.\",\n      \"progress_check\": \"Draw a picture of their family or community.\"\n    },\n     \"11:30 - 12:30\": {\n      \"subject\": \"Music and Movement\",\n      \"topic\": \"Singing and dancing\",\n      \"method\": \"Sing songs, learn simple dances, play musical instruments.\",\n      \"progress_check\": \"Participate actively and express themselves through music and movement.\"\n    }\n  },\n\n  // ... (Repeat this structure for Wednesday through Sunday, varying the subjects, topics, and methods. Ensure a good mix of core subjects like Language Arts and Math, along with other enriching areas like Science, Social Studies, Arts, and physical activity.)\n  // Example structure for Wednesday:\n\n  \"Wednesday\": {\n    \"8:00 - 9:00\": {\n      \"subject\": \"Language Arts\",\n      \"topic\": \"Writing: Simple sentences\",\n      \"method\": \"Practice writing simple sentences with correct spacing and punctuation.\",\n      \"progress_check\": \"Write a few sentences about a given topic.\"\n    },\n    // ... (Continue with the rest of the day's schedule)\n  },\n    // ... (Thursday, Friday, Saturday and Sunday)\n\"Saturday\": {\n     \"activities\": \"Full day dedicated to fun, family time and relaxing activities. Encourage the student to choose activities they enjoy.\"\n  },\n  \"Sunday\": {\n \"activities\": \"Revision of concepts covered during the week. Light revision through fun games and activities. Rest of the day for relaxation and preparing for the next week.\"\n  }\n\n\n}\n```\n\n**Important Notes for a Grade 1 student aspiring to be an IAS:**\n\n* **Focus on Fundamentals:** At this stage, a strong foundation in basic literacy and numeracy is crucial. The IAS dream is a long-term goal, and the best way to prepare is to excel in each stage of education.\n* **Holistic Development:** Encourage a love of learning across various subjects.  Expose the student to diverse areas like history, geography, and current events through age-appropriate books and activities.\n* **Play-Based Learning:**  Learning should be engaging and enjoyable. Use games, stories, and hands-on activities to make learning fun.\n* **Read Aloud:**  Regular reading aloud is vital for language development and fosters a love of reading.\n* **Limit Screen Time:** Minimize screen time and prioritize physical activity, creative play, and social interaction.\n* **Consistent Routine:**  A structured daily routine helps build good study habits.\n* **Positive Reinforcement:**  Encourage and praise the student's efforts and progress.\n\n\nRemember to adapt this plan based on the student's individual needs and progress. Observe their engagement and adjust the schedule accordingly. Regular assessment and feedback are essential to ensure effective learning.  The IAS dream is a marathon, not a sprint \u2013 focus on building a solid foundation for future success. \n",
+                "structured": false
+            },
+            "status": "active"
+        }
+    ],
+    "study_goals": [
+        {
+            "id": 1,
+            "created_at": "2025-03-09T12:57:25.639620",
+            "goals": "i want to become IAS",
+            "status": "in_progress"
+        }
+    ],
+    "completed_tasks": []
+}
