@@ -1,0 +1,57 @@
+{
+    "name": "vishnu",
+    "grade": 1,
+    "courses": [
+        "Python Programming",
+        "SQL Database",
+        "Deep Learning",
+        "Natural Language Processing"
+    ],
+    "password": "987654",
+    "joined_date": "2025-03-10T12:32:14.795115",
+    "last_active": "2025-03-10T12:41:27.816727",
+    "progress": {
+        "programming": {
+            "C++": [
+                20.0
+            ]
+        }
+    },
+    "badges": [],
+    "preferences": {
+        "language": "en",
+        "difficulty_level": "medium"
+    },
+    "study_preferences": {
+        "weekly_hours": 17,
+        "preferred_times": [
+            "Night (8-11 PM)"
+        ],
+        "learning_styles": {
+            "visual": true,
+            "auditory": false,
+            "practical": false
+        }
+    },
+    "subject_priorities": {
+        "programming": "Medium",
+        "web_dev": "Medium",
+        "mobile_dev": "Medium",
+        "ai": "Medium",
+        "software_eng": "Medium",
+        "networks": "Medium",
+        "databases": "High",
+        "os": "Medium",
+        "architecture": "Medium"
+    },
+    "weekly_progress": 0,
+    "topics_covered": 0,
+    "login_tracking": {
+        "last_login": "2025-03-10T12:39:03.351708",
+        "login_streak": 1
+    },
+    "study_streak": 35,
+    "topic_progress": {
+        "Variables & Data Types": false
+    }
+}

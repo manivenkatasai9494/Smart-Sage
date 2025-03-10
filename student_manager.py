@@ -16,7 +16,7 @@ class StudentManager:
         self.data_dir = DATA_DIR
         os.makedirs(self.data_dir, exist_ok=True)
 
-    def create_student(self, student_id: str, name: str, grade: int, courses: List[str]) -> bool:
+    def create_student(self, student_id: str, name: str, grade: int, courses: List[str], password: str) -> bool:
         """Create a new student record"""
         if self.student_exists(student_id):
             return False
@@ -25,6 +25,7 @@ class StudentManager:
             "name": name,
             "grade": grade,
             "courses": courses,
+            "password": password,  # Store password
             "joined_date": datetime.now().isoformat(),
             "last_active": datetime.now().isoformat(),
             "progress": {},
@@ -45,7 +46,10 @@ class StudentManager:
             "subject_priorities": {},
             "weekly_progress": 0,
             "topics_covered": 0,
-            "study_streak": 0
+            "login_tracking": {
+                "last_login": None,
+                "login_streak": 0
+            }
         }
 
         self._save_student_data(student_id, student_data)

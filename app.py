@@ -34,45 +34,50 @@ def display_login():
     with col1:
         st.subheader("Login")
         login_id = st.text_input("Student ID", key="login_id")
+        password = st.text_input("Password", type="password", key="login_password")
         if st.button("Login"):
             if student_manager.student_exists(login_id):
                 # Get student data
                 student_data = student_manager.get_student_data(login_id)
                 
-                # Initialize login tracking if not exists
-                if "login_tracking" not in student_data:
-                    student_data["login_tracking"] = {
-                        "last_login": None,
-                        "login_streak": 0
-                    }
-                
-                # Get current time
-                current_time = datetime.now()
-                
-                # Update login streak
-                if student_data["login_tracking"]["last_login"]:
-                    last_login = datetime.fromisoformat(student_data["login_tracking"]["last_login"])
-                    days_diff = (current_time.date() - last_login.date()).days
+                # Verify password
+                if student_data.get("password") == password:
+                    # Initialize login tracking if not exists
+                    if "login_tracking" not in student_data:
+                        student_data["login_tracking"] = {
+                            "last_login": None,
+                            "login_streak": 0
+                        }
                     
-                    if days_diff == 1:  # Consecutive day login
-                        student_data["login_tracking"]["login_streak"] += 1
-                    elif days_diff > 1:  # Streak broken
+                    # Get current time
+                    current_time = datetime.now()
+                    
+                    # Update login streak
+                    if student_data["login_tracking"]["last_login"]:
+                        last_login = datetime.fromisoformat(student_data["login_tracking"]["last_login"])
+                        days_diff = (current_time.date() - last_login.date()).days
+                        
+                        if days_diff == 1:  # Consecutive day login
+                            student_data["login_tracking"]["login_streak"] += 1
+                        elif days_diff > 1:  # Streak broken
+                            student_data["login_tracking"]["login_streak"] = 1
+                        # If same day login, keep streak as is
+                    else:
+                        # First time login
                         student_data["login_tracking"]["login_streak"] = 1
-                    # If same day login, keep streak as is
+                    
+                    # Update last login time
+                    student_data["login_tracking"]["last_login"] = current_time.isoformat()
+                    
+                    # Save updated data
+                    student_manager.update_student_data(login_id, student_data)
+                    
+                    # Set session state
+                    st.session_state.student_id = login_id
+                    st.session_state.authenticated = True
+                    st.rerun()
                 else:
-                    # First time login
-                    student_data["login_tracking"]["login_streak"] = 1
-                
-                # Update last login time
-                student_data["login_tracking"]["last_login"] = current_time.isoformat()
-                
-                # Save updated data
-                student_manager.update_student_data(login_id, student_data)
-                
-                # Set session state
-                st.session_state.student_id = login_id
-                st.session_state.authenticated = True
-                st.rerun()
+                    st.error("Incorrect password. Please try again.")
             else:
                 st.error("Student ID not found. Please register first.")
 
@@ -80,6 +85,8 @@ def display_login():
         st.subheader("Register")
         reg_id = st.text_input("Choose Student ID", key="reg_id")
         name = st.text_input("Your Name")
+        password = st.text_input("Choose Password", type="password", key="reg_password")
+        confirm_password = st.text_input("Confirm Password", type="password", key="confirm_password")
         grade = st.selectbox("Grade Level", list(range(1, 13)))
         
         # Course selection
@@ -175,11 +182,16 @@ def display_login():
                         selected_courses.append(course)
 
         if st.button("Register"):
-            if reg_id and name:
-                if student_manager.create_student(reg_id, name, grade, selected_courses):
-                    st.success("Registration successful! You can now login.")
+            if reg_id and name and password and confirm_password:
+                if password != confirm_password:
+                    st.error("Passwords do not match. Please try again.")
+                elif len(password) < 6:
+                    st.error("Password must be at least 6 characters long.")
                 else:
-                    st.error("Student ID already exists. Please choose another.")
+                    if student_manager.create_student(reg_id, name, grade, selected_courses, password):
+                        st.success("Registration successful! You can now login.")
+                    else:
+                        st.error("Student ID already exists. Please choose another.")
             else:
                 st.error("Please fill all fields.")
 

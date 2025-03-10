@@ -1,0 +1,41 @@
+{
+    "name": "shas",
+    "grade": 10,
+    "courses": [
+        "Python Programming",
+        "Dynamic Programming",
+        "Machine Learning Basics"
+    ],
+    "password": "123456",
+    "joined_date": "2025-03-10T11:45:09.974465",
+    "last_active": "2025-03-10T11:54:22.410671",
+    "progress": {},
+    "badges": [],
+    "preferences": {
+        "language": "en",
+        "difficulty_level": "medium"
+    },
+    "study_preferences": {
+        "weekly_hours": 20,
+        "preferred_times": [
+            "Morning (9-12 PM)"
+        ],
+        "learning_styles": {
+            "visual": true,
+            "auditory": false,
+            "practical": false
+        }
+    },
+    "subject_priorities": {},
+    "weekly_progress": 0,
+    "topics_covered": 0,
+    "login_tracking": {
+        "last_login": "2025-03-10T11:54:22.185170",
+        "login_streak": 1
+    },
+    "study_streak": 71,
+    "topic_progress": {
+        "Variables & Data Types": true,
+        "Control Flow": true
+    }
+}
