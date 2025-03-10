@@ -1,8 +1,8 @@
 {
-    "student_id": "1006",
-    "name": "mani",
+    "student_id": "10022",
+    "name": "sai",
     "grade": 1,
-    "created_at": "2025-03-09T14:29:54.313180",
+    "created_at": "2025-03-09T15:53:31.880418",
     "subjects": {
         "math": {
             "topics": {},
@@ -29,8 +29,8 @@
     "study_plans": [
         {
             "id": 1,
-            "created_at": "2025-03-09T14:30:37.276282",
-            "goals": "Improve math",
+            "created_at": "2025-03-09T16:07:23.541287",
+            "goals": "what is physics",
             "daily_schedules": {
                 "Day 1": {
                     "sessions": [
@@ -214,8 +214,8 @@
     "study_goals": [
         {
             "id": 1,
-            "created_at": "2025-03-09T14:30:37.276321",
-            "goals": "Improve math",
+            "created_at": "2025-03-09T16:07:23.541307",
+            "goals": "what is physics",
             "status": "in_progress"
         }
     ],
@@ -223,28 +223,67 @@
         "1",
         "2",
         "3",
-        "7",
-        "8",
-        "9",
-        "21"
+        "4",
+        "5",
+        "6",
+        "15",
+        "14",
+        "13"
+    ],
+    "assessments": [
+        {
+            "type": "initial",
+            "date": "2025-03-09T15:53:43.790769",
+            "results": {
+                "math": {
+                    "score": 0.0,
+                    "timestamp": "2025-03-09T15:53:43.790729",
+                    "details": [
+                        {
+                            "correct": false
+                        }
+                    ]
+                },
+                "physics": {
+                    "score": 0.0,
+                    "timestamp": "2025-03-09T15:53:43.790757",
+                    "details": [
+                        {
+                            "correct": false
+                        }
+                    ]
+                },
+                "chemistry": {
+                    "score": 100.0,
+                    "timestamp": "2025-03-09T15:53:43.790763",
+                    "details": [
+                        {
+                            "correct": true
+                        }
+                    ]
+                }
+            }
+        }
     ],
     "detailed_preferences": {
-        "last_updated": "2025-03-09T15:06:06.334868",
-        "goals": [
-            "Test preparation"
-        ],
-        "strengths": {
-            "math": 50,
-            "physics": 50,
-            "chemistry": 50
+        "last_updated": "2025-03-09T15:53:51.050787",
+        "vark": {
+            "visual": 50,
+            "auditory": 50,
+            "reading_writing": 50,
+            "kinesthetic": 50
         },
-        "learning_style": [
-            "Reading and writing"
-        ],
-        "available_hours": 2,
-        "preferred_times": [
-            "Afternoon"
-        ],
-        "upcoming_exams": "i have TS emcet exa,"
+        "preferred_times": [],
+        "study_block_preference": "Medium Sessions (45-60 min)",
+        "break_preference": [],
+        "adaptive_options": [],
+        "material_preferences": [],
+        "initial_difficulty": "Intermediate",
+        "target_scores": {
+            "math": 80,
+            "physics": 80,
+            "chemistry": 80
+        },
+        "exam_dates": ""
     }
 }

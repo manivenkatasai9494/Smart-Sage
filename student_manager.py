@@ -42,10 +42,7 @@ class StudentManager:
             "preferences": {
                 "language": "en",
                 "difficulty_level": "medium"
-            },
-            "study_plans": [],
-            "study_goals": [],
-            "completed_tasks": []
+            }
         }
 
         with open(self.get_student_file(student_id), 'w') as f:
@@ -299,13 +296,21 @@ class StudentManager:
         if not student_data:
             return False
 
+        # Ensure the plan has the correct structure
+        if not isinstance(plan, dict) or "daily_schedules" not in plan:
+            return False
+
         plan_data = {
             "id": len(student_data["study_plans"]) + 1,
             "created_at": datetime.now().isoformat(),
             "goals": goals,
-            "plan": plan,
+            "daily_schedules": plan["daily_schedules"],  # Store the daily_schedules directly
             "status": "active"
         }
+
+        # Set all other plans to inactive
+        for existing_plan in student_data["study_plans"]:
+            existing_plan["status"] = "inactive"
 
         student_data["study_plans"].append(plan_data)
         student_data["study_goals"].append({
@@ -316,6 +321,33 @@ class StudentManager:
         })
 
         return self.update_student_data(student_id, student_data)
+
+    def get_study_progress(self, student_id):
+        """Get the student's study progress"""
+        student_data = self.get_student_data(student_id)
+        if not student_data or not student_data["study_plans"]:
+            return None
+
+        active_plan = self.get_active_study_plan(student_id)
+        if not active_plan:
+            return None
+
+        completed_tasks = student_data["completed_tasks"]
+        
+        # Access daily_schedules directly from active_plan
+        total_tasks = sum(len(day["sessions"]) for day in active_plan["daily_schedules"].values())
+        completed_count = len([t for t in completed_tasks if any(
+            t == session["id"]
+            for day in active_plan["daily_schedules"].values()
+            for session in day["sessions"]
+        )])
+
+        return {
+            "plan_id": active_plan["id"],
+            "total_tasks": total_tasks,
+            "completed_tasks": completed_count,
+            "completion_rate": (completed_count / total_tasks * 100) if total_tasks > 0 else 0
+        }
 
     def get_active_study_plan(self, student_id):
         """Get the student's active study plan"""
@@ -336,28 +368,3 @@ class StudentManager:
             student_data["completed_tasks"].append(task_id)
             return self.update_student_data(student_id, student_data)
         return True
-
-    def get_study_progress(self, student_id):
-        """Get the student's study progress"""
-        student_data = self.get_student_data(student_id)
-        if not student_data or not student_data["study_plans"]:
-            return None
-
-        active_plan = self.get_active_study_plan(student_id)
-        if not active_plan:
-            return None
-
-        completed_tasks = student_data["completed_tasks"]
-        total_tasks = sum(len(day["sessions"]) for day in active_plan["plan"]["daily_schedules"].values())
-        completed_count = len([t for t in completed_tasks if any(
-            t == session["id"]
-            for day in active_plan["plan"]["daily_schedules"].values()
-            for session in day["sessions"]
-        )])
-
-        return {
-            "plan_id": active_plan["id"],
-            "total_tasks": total_tasks,
-            "completed_tasks": completed_count,
-            "completion_rate": (completed_count / total_tasks * 100) if total_tasks > 0 else 0
-        }

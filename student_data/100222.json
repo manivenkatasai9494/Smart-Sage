@@ -1,0 +1,67 @@
+{
+    "student_id": "100222",
+    "name": "bbbb",
+    "grade": 1,
+    "created_at": "2025-03-10T00:08:13.601853",
+    "subjects": {
+        "math": {
+            "topics": {},
+            "overall_score": 0,
+            "questions_answered": 0
+        },
+        "physics": {
+            "topics": {},
+            "overall_score": 0,
+            "questions_answered": 0
+        },
+        "chemistry": {
+            "topics": {},
+            "overall_score": 0,
+            "questions_answered": 0
+        }
+    },
+    "session_history": [],
+    "badges": [],
+    "preferences": {
+        "language": "en",
+        "difficulty_level": "medium"
+    },
+    "study_plans": [],
+    "study_goals": [],
+    "completed_tasks": [],
+    "assessments": [
+        {
+            "type": "initial",
+            "date": "2025-03-10T00:08:54.022591",
+            "results": {
+                "math": {
+                    "score": 0.0,
+                    "timestamp": "2025-03-10T00:08:54.022572",
+                    "details": [
+                        {
+                            "correct": false
+                        }
+                    ]
+                },
+                "physics": {
+                    "score": 0.0,
+                    "timestamp": "2025-03-10T00:08:54.022586",
+                    "details": [
+                        {
+                            "correct": false
+                        }
+                    ]
+                },
+                "chemistry": {
+                    "score": 100.0,
+                    "timestamp": "2025-03-10T00:08:54.022588",
+                    "details": [
+                        {
+                            "correct": true
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}

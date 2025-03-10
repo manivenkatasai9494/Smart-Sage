@@ -5,9 +5,6 @@ import streamlit.components.v1 as components
 from PIL import Image
 
 from ai_service import AITutorService
-from study_planner import StudyPlanner
-from onboarding import OnboardingManager
-from assessment import AssessmentManager
 from config import ALLOWED_SUBJECTS, APP_NAME
 from student_manager import StudentManager
 
@@ -15,14 +12,7 @@ from student_manager import StudentManager
 # Initialize services
 @st.cache_resource
 def init_services():
-    student_manager = StudentManager()
-    return (
-        AITutorService(),
-        student_manager,
-        StudyPlanner(),
-        OnboardingManager(student_manager),
-        AssessmentManager(student_manager)
-    )
+    return AITutorService(), StudentManager()
 
 
 # App configuration
@@ -34,7 +24,7 @@ st.set_page_config(
 )
 
 # Initialize services
-ai_tutor, student_manager, study_planner, onboarding_manager, assessment_manager = init_services()
+ai_tutor, student_manager = init_services()
 
 # Custom CSS
 st.markdown("""
@@ -103,62 +93,12 @@ st.markdown("""
     .chat-message .message-content .message p {
         margin: 0;
     }
-    .study-plan {
-        background-color: #2b313e;
-        padding: 20px;
-        border-radius: 10px;
-        margin: 10px 0;
-    }
-    .study-session {
-        background-color: #475063;
-        padding: 15px;
-        border-radius: 5px;
-        margin: 10px 0;
-    }
-    .progress-bar {
-        height: 20px;
-        background-color: #1E88E5;
-        border-radius: 10px;
-    }
-    .goal-card {
-        background-color: #1E88E5;
-        padding: 15px;
-        border-radius: 5px;
-        margin: 5px 0;
-        color: white;
-    }
-    .nav-button {
-        background-color: #1E88E5;
-        color: white;
-        padding: 10px 20px;
-        border-radius: 5px;
-        margin: 5px;
-        text-align: center;
-        cursor: pointer;
-    }
-    .back-button {
-        background-color: #424242;
-        color: white;
-        padding: 5px 15px;
-        border-radius: 5px;
-        margin: 5px;
-        text-align: center;
-        cursor: pointer;
-    }
 </style>
 """, unsafe_allow_html=True)
 
 # Session state initialization
 if "student_id" not in st.session_state:
     st.session_state.student_id = None
-if "onboarding_complete" not in st.session_state:
-    st.session_state.onboarding_complete = False
-if "assessment_complete" not in st.session_state:
-    st.session_state.assessment_complete = False
-if "current_view" not in st.session_state:
-    st.session_state.current_view = "main"
-if "navigation_history" not in st.session_state:
-    st.session_state.navigation_history = []
 if "subject" not in st.session_state:
     st.session_state.subject = "math"
 if "chat_history" not in st.session_state:
@@ -171,21 +111,9 @@ if "questions_asked" not in st.session_state:
     st.session_state.questions_asked = 0
 if "correct_answers" not in st.session_state:
     st.session_state.correct_answers = 0
-if "current_plan" not in st.session_state:
-    st.session_state.current_plan = None
+if "study_plan" not in st.session_state:
+    st.session_state.study_plan = None
 
-
-def navigate_to(view):
-    """Handle navigation between views"""
-    st.session_state.navigation_history.append(st.session_state.current_view)
-    st.session_state.current_view = view
-    st.rerun()
-
-def go_back():
-    """Handle navigation back"""
-    if st.session_state.navigation_history:
-        st.session_state.current_view = st.session_state.navigation_history.pop()
-        st.rerun()
 
 def display_login():
     """Display login/registration form"""
@@ -200,7 +128,6 @@ def display_login():
         if st.button("Login"):
             if student_manager.student_exists(login_id):
                 st.session_state.student_id = login_id
-                st.session_state.onboarding_complete = False
                 st.rerun()
             else:
                 st.error("Student ID not found. Please register first.")
@@ -219,64 +146,6 @@ def display_login():
                     st.error("Student ID already exists. Please choose another.")
             else:
                 st.error("Please fill all fields.")
-
-
-def display_main_menu():
-    """Display the main menu after onboarding"""
-    st.markdown("## Welcome to Your Learning Dashboard 🎓")
-    
-    # Display VARK profile if available
-    student_data = student_manager.get_student_data(st.session_state.student_id)
-    if "detailed_preferences" in student_data and "vark" in student_data["detailed_preferences"]:
-        st.subheader("Your Learning Style Profile")
-        col1, col2, col3, col4 = st.columns(4)
-        vark = student_data["detailed_preferences"]["vark"]
-        with col1:
-            st.metric("Visual", f"{vark.get('visual', 0):.0f}%")
-        with col2:
-            st.metric("Auditory", f"{vark.get('auditory', 0):.0f}%")
-        with col3:
-            st.metric("Reading/Writing", f"{vark.get('reading_writing', 0):.0f}%")
-        with col4:
-            st.metric("Kinesthetic", f"{vark.get('kinesthetic', 0):.0f}%")
-    
-    # Main navigation options
-    st.divider()
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        if st.button("📚 Study Planner", use_container_width=True):
-            navigate_to("study_planner")
-            
-    with col2:
-        if st.button("🎯 Course Explorer", use_container_width=True):
-            navigate_to("courses")
-            
-    with col3:
-        if st.button("📊 Analytics Dashboard", use_container_width=True):
-            navigate_to("analytics")
-
-    # Quick access to recent activities and progress
-    col1, col2 = st.columns([2, 1])
-    
-    with col1:
-        st.subheader("Recent Activities")
-        if student_data["session_history"]:
-            for session in student_data["session_history"][-5:]:
-                st.info(f"{session['subject'].capitalize()}: {session['topic']} - Score: {session['score']}%")
-        else:
-            st.info("No activities yet. Start your learning journey!")
-            
-    with col2:
-        st.subheader("Quick Stats")
-        if "assessments" in student_data:
-            latest_assessment = student_data["assessments"][-1]
-            st.write("Latest Assessment Scores:")
-            for subject, data in latest_assessment["results"].items():
-                st.metric(subject.capitalize(), f"{data['score']:.1f}%")
-        else:
-            if st.button("Take Initial Assessment"):
-                navigate_to("assessment")
 
 
 def display_chat():
@@ -420,7 +289,7 @@ def display_progress():
 
 def display_study_planner():
     """Display study planner interface"""
-    st.subheader("Study Planner")
+    st.subheader("Learning Roadmap")
     
     # Get current plan
     current_plan = student_manager.get_active_study_plan(st.session_state.student_id)
@@ -429,45 +298,166 @@ def display_study_planner():
     
     with col1:
         if not current_plan:
-            st.info("Create a new study plan to get started!")
+            st.info("Create your personalized learning roadmap!")
             with st.form("new_plan"):
-                st.write("Set Your Study Goals")
-                goals = st.text_area("What do you want to achieve?", 
-                    placeholder="Example: Improve math grade, prepare for physics exam...")
-                duration = st.slider("Plan Duration (days)", 1, 30, 7)
-                hours = st.slider("Study Hours per Day", 1, 8, 4)
+                # Quick Setup Section
+                st.write("### Quick Setup")
+                st.markdown("""
+                <div style='background-color: #e6f3ff; padding: 15px; border-radius: 8px; margin-bottom: 15px;'>
+                    <p>Let's create your personalized learning journey!</p>
+                </div>
+                """, unsafe_allow_html=True)
                 
-                if st.form_submit_button("Generate Plan"):
-                    if goals:
-                        student_data = student_manager.get_student_data(st.session_state.student_id)
-                        plan = study_planner.generate_study_plan(
-                            student_data=student_data,
-                            goals=goals,
-                            duration_days=duration,
-                            hours_per_day=hours
-                        )
-                        if student_manager.save_study_plan(st.session_state.student_id, plan, goals):
-                            st.success("Study plan created successfully!")
-                            st.rerun()
+                # Subject and topic selection
+                st.write("### What Do You Want to Learn?")
+                subject = st.selectbox(
+                    "Select Subject",
+                    ALLOWED_SUBJECTS,
+                    format_func=lambda x: x.capitalize()
+                )
+                
+                topics = st.multiselect(
+                    "Select Topics to Cover",
+                    topics[subject],
+                    help="Choose the topics you want to learn"
+                )
+                
+                # Learning Style Assessment
+                st.write("### Learning Style Assessment")
+                learning_style = st.radio(
+                    "How do you prefer to learn?",
+                    ["Visual (Charts, Diagrams)", "Auditory (Listening, Speaking)", 
+                     "Reading/Writing", "Kinesthetic (Hands-on, Practice)"]
+                )
+                
+                # Goals and preferences
+                st.write("### Your Goals")
+                goals = st.text_area(
+                    "What do you want to achieve?",
+                    placeholder="Example: Master calculus fundamentals, Understand quantum mechanics...",
+                    help="Be specific about your goals for better plan customization"
+                )
+                
+                # Study preferences
+                st.write("### Learning Schedule")
+                col1, col2 = st.columns(2)
+                with col1:
+                    duration = st.slider("Plan Duration (days)", 1, 90, 30)
+                with col2:
+                    hours = st.slider("Study Hours per Day", 1, 8, 2)
+                
+                # Preferred study times
+                st.write("### Preferred Study Times")
+                morning = st.checkbox("Morning (6 AM - 12 PM)", value=True)
+                afternoon = st.checkbox("Afternoon (12 PM - 6 PM)", value=True)
+                evening = st.checkbox("Evening (6 PM - 12 AM)", value=True)
+                
+                # Study methods
+                st.write("### Learning Methods")
+                methods = {
+                    "Reading": st.checkbox("Reading", value=True),
+                    "Practice Exercises": st.checkbox("Practice Exercises", value=True),
+                    "Video Tutorials": st.checkbox("Video Tutorials", value=True),
+                    "Group Learning": st.checkbox("Group Learning", value=False),
+                    "Flashcards": st.checkbox("Flashcards", value=True),
+                    "Mind Mapping": st.checkbox("Mind Mapping", value=True),
+                    "Project Work": st.checkbox("Project Work", value=True)
+                }
+                
+                # Additional preferences
+                st.write("### Learning Preferences")
+                focus_duration = st.slider("Preferred Focus Duration (minutes)", 25, 120, 45, step=5)
+                break_duration = st.slider("Preferred Break Duration (minutes)", 5, 30, 10, step=5)
+
+                if st.form_submit_button("Generate Learning Roadmap"):
+                    if subject and topics and goals:
+                        with st.spinner("Creating your personalized learning roadmap..."):
+                            # Create plan structure
+                            plan = {
+                                "daily_schedules": {},
+                                "subject": subject,
+                                "topics": topics,
+                                "learning_style": learning_style,
+                                "duration_days": duration,
+                                "hours_per_day": hours,
+                                "study_times": {
+                                    "morning": morning,
+                                    "afternoon": afternoon,
+                                    "evening": evening
+                                },
+                                "study_methods": [method for method, selected in methods.items() if selected],
+                                "focus_duration": focus_duration,
+                                "break_duration": break_duration
+                            }
+                            
+                            # Generate daily schedules
+                            for day in range(1, duration + 1):
+                                day_key = f"Day {day}"
+                                plan["daily_schedules"][day_key] = {
+                                    "sessions": []
+                                }
+                                
+                                # Add study sessions based on hours per day
+                                sessions_per_day = hours * 2  # Assuming 30-minute sessions
+                                for session in range(sessions_per_day):
+                                    session_id = f"{day_key}_session_{session + 1}"
+                                    topic = topics[session % len(topics)]
+                                    method = plan["study_methods"][session % len(plan["study_methods"])]
+                                    
+                                    # Get AI-generated description for the session
+                                    prompt = f"Generate a brief, specific study task for {topic} using {method} method."
+                                    description = ai_tutor.model.generate_content(prompt).text.strip()
+                                    
+                                    plan["daily_schedules"][day_key]["sessions"].append({
+                                        "id": session_id,
+                                        "topic": topic,
+                                        "method": method,
+                                        "duration": f"{focus_duration} minutes",
+                                        "description": description
+                                    })
+                            
+                            if student_manager.save_study_plan(st.session_state.student_id, plan, goals):
+                                st.success("Your personalized learning roadmap has been created!")
+                                st.balloons()
+                                st.rerun()
+                    else:
+                        st.error("Please fill in all required fields.")
         else:
             # Display current plan
-            st.markdown("### Current Study Plan")
-            st.markdown(f"**Goals:** {current_plan['goals']}")
+            st.write("### Your Learning Roadmap")
+            st.markdown(f"""
+            <div style='background-color: #e6f3ff; padding: 20px; border-radius: 10px; margin-bottom: 20px;'>
+                <h4>🎯 Learning Goals</h4>
+                <p>{current_plan['goals']}</p>
+            </div>
+            """, unsafe_allow_html=True)
             
             # Progress overview
             progress = student_manager.get_study_progress(st.session_state.student_id)
             if progress:
-                st.progress(progress["completion_rate"] / 100)
-                st.write(f"Progress: {progress['completion_rate']:.1f}% ({progress['completed_tasks']}/{progress['total_tasks']} tasks completed)")
+                col1, col2 = st.columns([3, 1])
+                with col1:
+                    st.progress(progress["completion_rate"] / 100)
+                with col2:
+                    st.metric(
+                        "Completion Rate",
+                        f"{progress['completion_rate']:.1f}%",
+                        f"{progress['completed_tasks']}/{progress['total_tasks']} tasks"
+                    )
             
             # Daily schedule
             for day, schedule in current_plan["daily_schedules"].items():
-                with st.expander(f"📅 {day}"):
+                with st.expander(f"📅 {day}", expanded=True):
                     for session in schedule["sessions"]:
                         col1, col2, col3 = st.columns([3, 1, 1])
                         with col1:
-                            st.write(f"📚 **{session['subject']}:** {session['topic']}")
-                            st.write(f"_{session['method']}_")
+                            st.markdown(f"""
+                            <div style='background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 10px;'>
+                                <h4>📚 {session['topic']}</h4>
+                                <p><strong>Method:</strong> {session['method']}</p>
+                                <p><em>{session.get('description', f"Study {session['topic']} using {session['method']}")}</em></p>
+                            </div>
+                            """, unsafe_allow_html=True)
                         with col2:
                             st.write(f"⏱️ {session['duration']}")
                         with col3:
@@ -476,40 +466,45 @@ def display_study_planner():
                                 st.rerun()
     
     with col2:
-        st.markdown("### Study Tips")
+        # Learning Tips
+        st.write("### AI-Recommended Learning Tips")
         tips = [
             "Take regular breaks (5-10 minutes every hour)",
             "Stay hydrated and maintain good posture",
             "Use active recall techniques",
             "Explain concepts to others",
-            "Review material before sleeping"
+            "Review material before sleeping",
+            "Use the Pomodoro Technique",
+            "Create mind maps for complex topics",
+            "Work on real projects",
+            "Join learning communities",
+            "Use spaced repetition"
         ]
         for tip in tips:
             st.info(tip)
         
         if current_plan:
-            st.markdown("### Plan Adjustment")
-            feedback = st.text_area("Need to adjust your plan?", 
-                placeholder="Example: I need more time for math, prefer studying in the morning...")
-            if st.button("Adjust Plan"):
+            st.write("### Plan Adjustment")
+            st.markdown("""
+            <div style='background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;'>
+                <p>Need to adjust your learning roadmap? Our AI will help optimize it based on your feedback.</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            feedback = st.text_area(
+                "What would you like to adjust?",
+                placeholder="Example: I need more time for certain topics...",
+                help="Be specific about what you'd like to change"
+            )
+            if st.button("Optimize Plan"):
                 if feedback:
-                    adjusted_plan = study_planner.adjust_plan(current_plan, feedback)
-                    if student_manager.save_study_plan(st.session_state.student_id, adjusted_plan, current_plan["goals"]):
-                        st.success("Plan adjusted successfully!")
-                        st.rerun()
-
-
-def display_analytics():
-    """Display the analytics dashboard"""
-    st.markdown("## Performance Analytics Dashboard 📊")
-    
-    # Show back button
-    if st.button("⬅️ Back to Main Menu"):
-        navigate_to("main")
-        return
-    
-    # Display analytics dashboard
-    assessment_manager.display_analytics_dashboard(st.session_state.student_id)
+                    with st.spinner("Optimizing your learning roadmap..."):
+                        # Create adjusted plan based on feedback
+                        adjusted_plan = current_plan.copy()
+                        # Here you could add AI-based plan adjustment logic
+                        if student_manager.save_study_plan(st.session_state.student_id, adjusted_plan, current_plan["goals"]):
+                            st.success("Your learning roadmap has been optimized!")
+                            st.rerun()
 
 
 def main():
@@ -517,71 +512,86 @@ def main():
     if not st.session_state.student_id:
         display_login()
     else:
-        # Check if initial assessment is complete
-        if not st.session_state.assessment_complete:
-            if assessment_manager.conduct_initial_assessment(st.session_state.student_id):
-                st.session_state.assessment_complete = True
+        # Get student data
+        student_data = student_manager.get_student_data(st.session_state.student_id)
+
+        # Sidebar
+        with st.sidebar:
+            st.image("https://img.icons8.com/color/96/000000/student-male--v1.png", width=100)
+            st.subheader(f"Welcome, {student_data['name']}!")
+            st.write(f"Grade: {student_data['grade']}")
+
+            # Display badges
+            if student_data["badges"]:
+                st.subheader("Your Badges")
+                badges_html = ""
+                for badge in student_data["badges"]:
+                    badges_html += f'<div class="badge">{badge}</div>'
+                st.markdown(badges_html, unsafe_allow_html=True)
+
+            st.divider()
+
+            # Subject selection
+            st.subheader("Select Subject")
+            subject = st.radio(
+                "",
+                ALLOWED_SUBJECTS,
+                format_func=lambda x: x.capitalize(),
+                index=ALLOWED_SUBJECTS.index(st.session_state.subject)
+            )
+
+            if subject != st.session_state.subject:
+                st.session_state.subject = subject
+                st.session_state.chat_history = []
                 st.rerun()
-        # Check if onboarding is complete
-        elif not st.session_state.onboarding_complete:
-            if onboarding_manager.collect_preferences(st.session_state.student_id):
-                st.session_state.onboarding_complete = True
+
+            st.divider()
+
+            # Settings
+            st.subheader("Settings")
+            language = st.selectbox(
+                "Language",
+                ["en", "es", "fr", "de", "zh", "hi", "ar", "ru"],
+                format_func=lambda x: {
+                    "en": "English", "es": "Spanish", "fr": "French",
+                    "de": "German", "zh": "Chinese", "hi": "Hindi",
+                    "ar": "Arabic", "ru": "Russian"
+                }.get(x, x),
+                index=0
+            )
+            student_data["preferences"]["language"] = language
+
+            difficulty = st.select_slider(
+                "Difficulty Level",
+                options=["easy", "medium", "hard"],
+                value=student_data["preferences"]["difficulty_level"]
+            )
+            student_data["preferences"]["difficulty_level"] = difficulty
+
+            # Save preferences
+            student_manager.update_student_data(st.session_state.student_id, student_data)
+
+            st.divider()
+
+            # Logout button
+            if st.button("Logout"):
+                st.session_state.student_id = None
                 st.rerun()
-        else:
-            # Get student data
-            student_data = student_manager.get_student_data(st.session_state.student_id)
 
-            # Sidebar
-            with st.sidebar:
-                st.image("https://img.icons8.com/color/96/000000/student-male--v1.png", width=100)
-                st.subheader(f"Welcome, {student_data['name']}!")
-                st.write(f"Grade: {student_data['grade']}")
+        # Main content
+        tab1, tab2, tab3, tab4 = st.tabs(["Tutor Chat", "Practice Questions", "Learning Roadmap", "My Progress"])
 
-                # Display badges
-                if student_data["badges"]:
-                    st.subheader("Your Badges")
-                    badges_html = ""
-                    for badge in student_data["badges"]:
-                        badges_html += f'<div class="badge">{badge}</div>'
-                    st.markdown(badges_html, unsafe_allow_html=True)
+        with tab1:
+            display_chat()
 
-                st.divider()
+        with tab2:
+            display_practice()
 
-                # Quick navigation
-                st.subheader("Quick Navigation")
-                if st.button("🏠 Home"):
-                    navigate_to("main")
-                if st.button("📊 Analytics"):
-                    navigate_to("analytics")
-                if st.button("⚙️ Update Preferences"):
-                    st.session_state.onboarding_complete = False
-                    st.rerun()
-                if st.button("📝 Study Notes"):
-                    navigate_to("notes")
-                
-                st.divider()
+        with tab3:
+            display_study_planner()
 
-                # Logout button
-                if st.button("Logout"):
-                    for key in st.session_state.keys():
-                        del st.session_state[key]
-                    st.rerun()
-
-            # Main content based on current view
-            if st.session_state.current_view == "main":
-                display_main_menu()
-            elif st.session_state.current_view == "study_planner":
-                display_study_planner()
-            elif st.session_state.current_view == "courses":
-                onboarding_manager.show_course_options(st.session_state.student_id)
-            elif st.session_state.current_view == "analytics":
-                display_analytics()
-            elif st.session_state.current_view == "assessment":
-                if assessment_manager.conduct_initial_assessment(st.session_state.student_id):
-                    navigate_to("main")
-            elif st.session_state.current_view == "notes":
-                st.markdown("## 📝 Study Notes")
-                st.info("This feature is coming soon!")
+        with tab4:
+            display_progress()
 
 
 if __name__ == "__main__":

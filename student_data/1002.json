@@ -1,8 +1,8 @@
 {
-    "student_id": "1006",
-    "name": "mani",
+    "student_id": "1002",
+    "name": "maniii",
     "grade": 1,
-    "created_at": "2025-03-09T14:29:54.313180",
+    "created_at": "2025-03-10T00:23:26.319788",
     "subjects": {
         "math": {
             "topics": {},
@@ -29,8 +29,8 @@
     "study_plans": [
         {
             "id": 1,
-            "created_at": "2025-03-09T14:30:37.276282",
-            "goals": "Improve math",
+            "created_at": "2025-03-10T00:26:18.125293",
+            "goals": "i want to prepare for math",
             "daily_schedules": {
                 "Day 1": {
                     "sessions": [
@@ -214,8 +214,8 @@
     "study_goals": [
         {
             "id": 1,
-            "created_at": "2025-03-09T14:30:37.276321",
-            "goals": "Improve math",
+            "created_at": "2025-03-10T00:26:18.125314",
+            "goals": "i want to prepare for math",
             "status": "in_progress"
         }
     ],
@@ -223,28 +223,23 @@
         "1",
         "2",
         "3",
+        "4",
+        "5",
+        "6",
         "7",
         "8",
         "9",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "18",
+        "19",
+        "20",
         "21"
-    ],
-    "detailed_preferences": {
-        "last_updated": "2025-03-09T15:06:06.334868",
-        "goals": [
-            "Test preparation"
-        ],
-        "strengths": {
-            "math": 50,
-            "physics": 50,
-            "chemistry": 50
-        },
-        "learning_style": [
-            "Reading and writing"
-        ],
-        "available_hours": 2,
-        "preferred_times": [
-            "Afternoon"
-        ],
-        "upcoming_exams": "i have TS emcet exa,"
-    }
+    ]
 }

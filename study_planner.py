@@ -43,31 +43,66 @@ class StudyPlanner:
         Study Preferences:
         - Available hours per day: {hours_per_day if hours_per_day else 'Flexible'}
         
-        Please provide a structured daily plan that includes:
-        1. Subject rotation to maintain engagement
-        2. Specific topics to focus on
-        3. Recommended study methods
-        4. Short breaks between sessions
-        5. Progress check points
-        
-        Format the plan as a JSON structure with days as keys and detailed hourly schedules.
+        Please provide a structured daily plan that follows this EXACT JSON format:
+        {{
+            "daily_schedules": {{
+                "Day 1": {{
+                    "sessions": [
+                        {{
+                            "id": "1",
+                            "subject": "math",
+                            "topic": "Algebra Basics",
+                            "duration": "1 hours",
+                            "method": "Video tutorials and practice problems"
+                        }}
+                    ]
+                }}
+            }}
+        }}
+
+        Important rules:
+        1. Use EXACTLY this JSON structure with "daily_schedules" as the root key
+        2. Each day must be named "Day X" where X is the day number
+        3. Each session must have all five fields: id, subject, topic, duration, method
+        4. Subject must be one of: {', '.join(ALLOWED_SUBJECTS)}
+        5. Duration must be in the format "X hours" where X is a number
+        6. Generate {duration_days} days of content
         """
         
         response = self.model.generate_content(prompt)
         try:
             plan = json.loads(response.text)
             return self._format_study_plan(plan)
-        except:
-            # Fallback to text format if JSON parsing fails
-            return {"text": response.text, "structured": False}
+        except json.JSONDecodeError:
+            # Create a basic structured plan if JSON parsing fails
+            basic_plan = {
+                "daily_schedules": {
+                    f"Day {i+1}": {
+                        "sessions": [{
+                            "id": str(i*3 + j + 1),
+                            "subject": ALLOWED_SUBJECTS[j % len(ALLOWED_SUBJECTS)],
+                            "topic": "Review Basics",
+                            "duration": "1 hours",
+                            "method": "Self-study and practice"
+                        } for j in range(3)]
+                    } for i in range(duration_days)
+                }
+            }
+            return self._format_study_plan(basic_plan)
 
     def _format_study_plan(self, plan_data):
         """Format the study plan into a structured format"""
-        formatted_plan = {
-            "daily_schedules": plan_data,
-            "structured": True,
-            "summary": self._generate_plan_summary(plan_data)
-        }
+        # Ensure we have the correct structure
+        if isinstance(plan_data, dict) and "daily_schedules" in plan_data:
+            formatted_plan = plan_data
+        else:
+            # If we received a different structure, reformat it
+            formatted_plan = {
+                "daily_schedules": plan_data if isinstance(plan_data, dict) else {}
+            }
+
+        formatted_plan["structured"] = True
+        formatted_plan["summary"] = self._generate_plan_summary(formatted_plan["daily_schedules"])
         return formatted_plan
 
     def _generate_plan_summary(self, plan_data):
@@ -76,18 +111,22 @@ class StudyPlanner:
         subject_hours = {}
         
         for day, schedule in plan_data.items():
-            for session in schedule["sessions"]:
-                duration = float(session["duration"].split()[0])
-                subject = session["subject"]
-                total_hours += duration
-                subject_hours[subject] = subject_hours.get(subject, 0) + duration
+            if isinstance(schedule, dict) and "sessions" in schedule:
+                for session in schedule["sessions"]:
+                    if isinstance(session, dict) and "duration" in session and "subject" in session:
+                        try:
+                            duration = float(session["duration"].split()[0])
+                            subject = session["subject"]
+                            total_hours += duration
+                            subject_hours[subject] = subject_hours.get(subject, 0) + duration
+                        except (ValueError, AttributeError):
+                            continue
         
-        summary = {
+        return {
             "total_hours": total_hours,
             "subject_distribution": subject_hours,
             "days_covered": len(plan_data)
         }
-        return summary
 
     def adjust_plan(self, original_plan, feedback):
         """Adjust the study plan based on student feedback"""

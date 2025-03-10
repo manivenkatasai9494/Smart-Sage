@@ -1,8 +1,8 @@
 {
-    "student_id": "1005111",
-    "name": "maniii",
-    "grade": 6,
-    "created_at": "2025-03-09T11:46:06.618412",
+    "student_id": "7788",
+    "name": "sai",
+    "grade": 1,
+    "created_at": "2025-03-10T08:26:18.687761",
     "subjects": {
         "math": {
             "topics": {},
