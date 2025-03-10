@@ -1,0 +1,63 @@
+{
+    "69": {
+        "name": "sp",
+        "grade": 1,
+        "created_at": "2025-03-09 16:45:04.888663",
+        "courses": [
+            "Programming Fundamentals",
+            "Data Structures & Algorithms",
+            "Database Systems",
+            "Operating Systems",
+            "Computer Networks",
+            "Software Engineering",
+            "Artificial Intelligence",
+            "Digital Electronics",
+            "Microprocessors",
+            "Linear Algebra"
+        ],
+        "progress": {},
+        "badges": [],
+        "preferences": {
+            "language": "en",
+            "difficulty_level": "medium"
+        }
+    },
+    "21": {
+        "name": "21",
+        "grade": 12,
+        "created_at": "2025-03-09 16:48:35.937306",
+        "courses": [
+            "Programming Fundamentals",
+            "Data Structures & Algorithms",
+            "Digital Electronics",
+            "Computer Architecture",
+            "Calculus",
+            "Discrete Mathematics"
+        ],
+        "progress": {},
+        "badges": [],
+        "preferences": {
+            "language": "en",
+            "difficulty_level": "medium"
+        }
+    },
+    "99": {
+        "name": "sp",
+        "grade": 12,
+        "created_at": "2025-03-10 09:31:34.866251",
+        "courses": [
+            "Java Programming",
+            "Linked Lists",
+            "HTML & CSS",
+            "Android Development",
+            "Software Design Patterns",
+            "Big Data"
+        ],
+        "progress": {},
+        "badges": [],
+        "preferences": {
+            "language": "en",
+            "difficulty_level": "medium"
+        }
+    }
+}
