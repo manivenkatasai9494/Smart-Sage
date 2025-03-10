@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 
 import streamlit as st
 import streamlit.components.v1 as components
@@ -7,6 +8,7 @@ from PIL import Image
 from ai_service import AITutorService
 from config import ALLOWED_SUBJECTS, APP_NAME, SUBJECT_DISPLAY_NAMES
 from student_manager import StudentManager
+from study_planner import StudyPlanner, generate_study_schedule
 
 
 # Initialize services
@@ -17,8 +19,15 @@ def init_services():
 
 def display_login():
     """Display login/registration form"""
-    st.markdown('<h1 class="main-header">AI Learning Companion</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="subheader">Your personalized tutor for Computer Science and Technology</p>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-header">StudyBud: AI Personalized Study Planner</h1>', unsafe_allow_html=True)
+    st.markdown('''
+        <p class="subheader">Your intelligent study companion powered by BERT</p>
+        <div class="feature-description">
+            StudyBud is an intelligent application designed to create customized study plans based on your specific goals, 
+            strengths, weaknesses, and preferences. Using advanced AI technology, we help you optimize your study schedule 
+            to achieve your academic targets efficiently.
+        </div>
+    ''', unsafe_allow_html=True)
 
     col1, col2 = st.columns([1, 1])
 
@@ -27,6 +36,40 @@ def display_login():
         login_id = st.text_input("Student ID", key="login_id")
         if st.button("Login"):
             if student_manager.student_exists(login_id):
+                # Get student data
+                student_data = student_manager.get_student_data(login_id)
+                
+                # Initialize login tracking if not exists
+                if "login_tracking" not in student_data:
+                    student_data["login_tracking"] = {
+                        "last_login": None,
+                        "login_streak": 0
+                    }
+                
+                # Get current time
+                current_time = datetime.now()
+                
+                # Update login streak
+                if student_data["login_tracking"]["last_login"]:
+                    last_login = datetime.fromisoformat(student_data["login_tracking"]["last_login"])
+                    days_diff = (current_time.date() - last_login.date()).days
+                    
+                    if days_diff == 1:  # Consecutive day login
+                        student_data["login_tracking"]["login_streak"] += 1
+                    elif days_diff > 1:  # Streak broken
+                        student_data["login_tracking"]["login_streak"] = 1
+                    # If same day login, keep streak as is
+                else:
+                    # First time login
+                    student_data["login_tracking"]["login_streak"] = 1
+                
+                # Update last login time
+                student_data["login_tracking"]["last_login"] = current_time.isoformat()
+                
+                # Save updated data
+                student_manager.update_student_data(login_id, student_data)
+                
+                # Set session state
                 st.session_state.student_id = login_id
                 st.session_state.authenticated = True
                 st.rerun()
@@ -244,46 +287,407 @@ def display_practice():
     """Display practice questions interface"""
     st.subheader("Practice Questions")
 
+    # Initialize session state variables if they don't exist
+    if "practice_questions" not in st.session_state:
+        st.session_state.practice_questions = None
+    if "current_answers" not in st.session_state:
+        st.session_state.current_answers = []
+    if "submitted" not in st.session_state:
+        st.session_state.submitted = False
+    if "score" not in st.session_state:
+        st.session_state.score = 0
+    if "questions_asked" not in st.session_state:
+        st.session_state.questions_asked = 0
+    if "correct_answers" not in st.session_state:
+        st.session_state.correct_answers = 0
+
+    # Question type selection
+    question_type = st.radio(
+        "Select Question Type",
+        ["Multiple Choice", "Open-ended"],
+        help="Choose the type of practice questions you want to attempt"
+    )
+
+    # Question count selection
+    num_questions = st.slider("Number of Questions", min_value=1, max_value=10, value=5)
+
     if st.button("Generate New Practice Questions"):
         student_data = student_manager.get_student_data(st.session_state.student_id)
         with st.spinner("Generating questions..."):
-            questions = ai_tutor.generate_practice_questions(
-                subject=st.session_state.subject,
-                topic=st.session_state.current_topic,
-                difficulty=student_data["preferences"]["difficulty_level"]
-            )
-            st.session_state.practice_questions = questions
+            try:
+                questions = ai_tutor.generate_practice_questions(
+                    subject=st.session_state.subject,
+                    topic=st.session_state.current_topic,
+                    difficulty=student_data["preferences"]["difficulty_level"],
+                    question_type=question_type,
+                    num_questions=num_questions
+                )
+                st.session_state.practice_questions = questions
+                st.session_state.current_answers = []
+                st.session_state.submitted = False
+                st.session_state.score = 0
+                st.rerun()
+            except Exception as e:
+                st.error(f"Error generating questions: {str(e)}")
+                return
 
     if st.session_state.practice_questions:
-        st.markdown(st.session_state.practice_questions)
-
-        st.divider()
-        st.subheader("Submit Your Answer")
-        answer = st.text_area("Your solution:", height=150)
-
-        if st.button("Check Answer"):
-            if answer:
-                student_data = student_manager.get_student_data(st.session_state.student_id)
-                evaluation = ai_tutor.evaluate_answer(
-                    question=st.session_state.practice_questions,
-                    student_answer=answer,
-                    subject=st.session_state.subject,
-                    grade_level=student_data["grade"]
+        # Display questions
+        for i, question in enumerate(st.session_state.practice_questions):
+            st.markdown(f"### Question {i+1}")
+            st.markdown(question.get("question", "Error: Question not found"))
+            
+            if question_type == "Multiple Choice":
+                options = question.get("options", [])
+                if options:
+                    # Display multiple choice options
+                    selected_option = st.radio(
+                        f"Select your answer for Question {i+1}",
+                        options,
+                        key=f"q_{i}"
+                    )
+                    
+                    # Store answer
+                    while len(st.session_state.current_answers) <= i:
+                        st.session_state.current_answers.append(None)
+                    st.session_state.current_answers[i] = selected_option
+            else:
+                # Open-ended response
+                answer = st.text_area(
+                    "Your answer:",
+                    key=f"q_{i}",
+                    height=100
                 )
-                st.markdown(evaluation)
+                
+                # Store answer
+                while len(st.session_state.current_answers) <= i:
+                    st.session_state.current_answers.append("")
+                st.session_state.current_answers[i] = answer
+
+        # Submit button
+        if st.button("Submit Answers"):
+            st.session_state.submitted = True
+            
+            if question_type == "Multiple Choice":
+                # Calculate score for multiple choice
+                correct_count = sum(
+                    1 for q, a in zip(st.session_state.practice_questions, st.session_state.current_answers)
+                    if a == q.get("correct_answer")
+                )
+                st.session_state.score = (correct_count / len(st.session_state.practice_questions)) * 100
+                
+                # Display results
+                st.markdown("### Results")
+                st.metric("Your Score", f"{st.session_state.score:.1f}%")
+                
+                # Show detailed feedback
+                for i, (question, answer) in enumerate(zip(st.session_state.practice_questions, st.session_state.current_answers)):
+                    with st.expander(f"Question {i+1} Feedback"):
+                        st.markdown(question.get("question", ""))
+                        st.markdown(f"Your answer: **{answer}**")
+                        st.markdown(f"Correct answer: **{question.get('correct_answer', '')}**")
+                        if answer == question.get("correct_answer"):
+                            st.success("Correct! " + question.get("explanation", ""))
+                        else:
+                            st.error("Incorrect. " + question.get("explanation", ""))
+            else:
+                # For open-ended questions, use AI to evaluate answers
+                student_data = student_manager.get_student_data(st.session_state.student_id)
+                total_score = 0
+                
+                st.markdown("### Results")
+                for i, (question, answer) in enumerate(zip(st.session_state.practice_questions, st.session_state.current_answers)):
+                    with st.expander(f"Question {i+1} Feedback", expanded=True):
+                        evaluation = ai_tutor.evaluate_answer(
+                            question=question.get("question", ""),
+                            student_answer=answer,
+                            subject=st.session_state.subject,
+                            grade_level=student_data["grade"]
+                        )
+                        st.markdown(evaluation)
+                        
+                        # Extract score from evaluation (assuming AI returns score in the format "Score: X/100")
+                        try:
+                            score_line = [line for line in evaluation.split('\n') if 'Score' in line][0]
+                            question_score = float(score_line.split(':')[1].strip().split('/')[0])
+                            total_score += question_score
+                        except:
+                            question_score = 0
+                
+                # Calculate and display average score
+                st.session_state.score = total_score / len(st.session_state.practice_questions)
+                st.metric("Overall Score", f"{st.session_state.score:.1f}%")
+            
+            # Update student progress
+            student_data = student_manager.get_student_data(st.session_state.student_id)
+            if "progress" not in student_data:
+                student_data["progress"] = {}
+            if st.session_state.subject not in student_data["progress"]:
+                student_data["progress"][st.session_state.subject] = {}
+            
+            # Update topic progress
+            topic_progress = student_data["progress"][st.session_state.subject].get(st.session_state.current_topic, [])
+            topic_progress.append(st.session_state.score)
+            student_data["progress"][st.session_state.subject][st.session_state.current_topic] = topic_progress
+            
+            # Update total questions and correct answers
+            st.session_state.questions_asked += len(st.session_state.practice_questions)
+            st.session_state.correct_answers += int((st.session_state.score / 100) * len(st.session_state.practice_questions))
+            
+            # Save updated progress
+            student_manager.update_student_data(st.session_state.student_id, student_data)
+            
+            # Show encouragement message
+            if st.session_state.score >= 80:
+                st.balloons()
+                st.success("Excellent work! You've mastered this topic! 🌟")
+            elif st.session_state.score >= 60:
+                st.success("Good job! Keep practicing to improve further! 💪")
+            else:
+                st.info("Keep practicing! Review the topics and try again. 📚")
 
 
 def display_progress():
     """Display progress tracking interface"""
     st.subheader("My Progress")
 
-    report = student_manager.generate_performance_report(st.session_state.student_id)
-    if isinstance(report, str):
-        st.info(report)
-    elif report:
-        st.markdown(report["summary"])
-        if report.get("report_file") and os.path.exists(report["report_file"]):
-            st.image(report["report_file"])
+    # Get student data and progress
+    student_data = student_manager.get_student_data(st.session_state.student_id)
+    
+    # Initialize progress if not exists
+    if "topic_progress" not in student_data:
+        student_data["topic_progress"] = {}
+    
+    # Topics by category
+    topics_by_category = {
+        "Programming Fundamentals": [
+            "Variables & Data Types",
+            "Control Flow",
+            "Functions",
+            "Object-Oriented Programming",
+            "Error Handling",
+            "File I/O"
+        ],
+        "Data Structures": [
+            "Arrays & Lists",
+            "Stacks & Queues",
+            "Trees",
+            "Graphs",
+            "Hash Tables",
+            "Heaps"
+        ],
+        "Web Development": [
+            "HTML & CSS",
+            "JavaScript Basics",
+            "DOM Manipulation",
+            "API Integration",
+            "React Components",
+            "State Management"
+        ],
+        "Database Systems": [
+            "SQL Basics",
+            "Database Design",
+            "Normalization",
+            "Indexing",
+            "Transactions",
+            "NoSQL Concepts"
+        ],
+        "Software Engineering": [
+            "Version Control",
+            "Testing Methods",
+            "Design Patterns",
+            "Code Review",
+            "CI/CD",
+            "Agile Practices"
+        ]
+    }
+    
+    # Display overall progress
+    st.markdown("### 📊 Overall Progress")
+    progress_col1, progress_col2, progress_col3 = st.columns(3)
+    
+    # Calculate overall progress
+    total_topics = sum(len(topics) for topics in topics_by_category.values())
+    completed_topics = sum(1 for topic_status in student_data["topic_progress"].values() if topic_status)
+    overall_progress = (completed_topics / total_topics) * 100 if total_topics > 0 else 0
+    
+    with progress_col1:
+        st.metric("Progress", f"{overall_progress:.1f}%")
+    with progress_col2:
+        st.metric("Topics Completed", f"{completed_topics}/{total_topics}")
+    with progress_col3:
+        login_streak = student_data.get("login_tracking", {}).get("login_streak", 0)
+        st.metric(
+            "Login Streak", 
+            f"{login_streak} days",
+            help="Number of consecutive days you've logged in"
+        )
+    
+    # Display topic progress by category
+    st.markdown("### 📚 Topic Progress")
+    
+    # Track changes to update progress
+    topics_changed = False
+    
+    for category, topics in topics_by_category.items():
+        with st.expander(f"📘 {category}", expanded=True):
+            # Create columns for better layout
+            cols = st.columns(2)
+            for i, topic in enumerate(topics):
+                col = cols[i % 2]
+                with col:
+                    # Check if topic was previously completed
+                    was_completed = student_data["topic_progress"].get(topic, False)
+                    
+                    # Create checkbox with previous state
+                    is_completed = st.checkbox(
+                        topic,
+                        value=was_completed,
+                        key=f"topic_{category}_{topic}"
+                    )
+                    
+                    # If checkbox state changed, update progress
+                    if is_completed != was_completed:
+                        student_data["topic_progress"][topic] = is_completed
+                        topics_changed = True
+                        
+                        # Show celebration on completion
+                        if is_completed and not was_completed:
+                            st.success(f"🎉 Completed: {topic}")
+                            if len([t for t in student_data["topic_progress"].values() if t]) % 5 == 0:
+                                st.balloons()
+    
+    # Update progress bars for each category
+    st.markdown("### 📈 Category Progress")
+    category_cols = st.columns(len(topics_by_category))
+    for i, (category, topics) in enumerate(topics_by_category.items()):
+        with category_cols[i]:
+            completed_in_category = sum(1 for topic in topics if student_data["topic_progress"].get(topic, False))
+            category_progress = (completed_in_category / len(topics)) * 100
+            st.progress(category_progress / 100)
+            st.caption(f"{category}: {category_progress:.1f}%")
+    
+    # Achievement badges
+    st.markdown("### 🏆 Achievements")
+    achievement_cols = st.columns(3)
+    
+    # Define achievements and their criteria
+    achievements = {
+        "Quick Starter": {"required": 5, "icon": "🚀", "description": "Complete 5 topics"},
+        "Half Way There": {"required": total_topics // 2, "icon": "🎯", "description": f"Complete {total_topics // 2} topics"},
+        "Master Learner": {"required": total_topics, "icon": "👑", "description": f"Complete all {total_topics} topics"}
+    }
+    
+    # Display achievements
+    for i, (badge, info) in enumerate(achievements.items()):
+        with achievement_cols[i]:
+            progress = min(completed_topics / info["required"], 1.0) * 100
+            st.markdown(f"### {info['icon']}")
+            st.progress(progress / 100)
+            st.markdown(f"**{badge}**")
+            st.caption(f"{info['description']}")
+            if completed_topics >= info["required"]:
+                st.success("Unlocked!")
+            else:
+                st.info(f"{completed_topics}/{info['required']} topics")
+    
+    # Save progress if changes were made
+    if topics_changed:
+        # Save updated data
+        student_manager.update_student_data(st.session_state.student_id, student_data)
+        
+        # Force refresh to update progress bars
+        st.rerun()
+
+
+def display_study_plan():
+    """Display personalized study planner interface"""
+    st.subheader("Your Personalized Study Plan")
+    
+    # Get student data
+    student_data = student_manager.get_student_data(st.session_state.student_id)
+    
+    # Study Goals Section
+    st.markdown("### 📚 Study Goals")
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        # Weekly study hours
+        weekly_hours = st.slider(
+            "Weekly Study Hours Target",
+            min_value=1,
+            max_value=40,
+            value=student_data.get("study_preferences", {}).get("weekly_hours", 20),
+            help="Set your target study hours per week"
+        )
+        
+        # Preferred study times
+        study_times = st.multiselect(
+            "Preferred Study Times",
+            ["Early Morning (6-9 AM)", "Morning (9-12 PM)", "Afternoon (12-4 PM)", 
+             "Evening (4-8 PM)", "Night (8-11 PM)"],
+            default=student_data.get("study_preferences", {}).get("preferred_times", ["Morning (9-12 PM)"])
+        )
+    
+    with col2:
+        # Study style preferences
+        st.markdown("#### Learning Style")
+        visual = st.checkbox("Visual Learning", value=True)
+        auditory = st.checkbox("Auditory Learning")
+        practical = st.checkbox("Hands-on Practice")
+    
+    # Priority Subjects
+    st.markdown("### 📋 Subject Priorities")
+    priorities = {}
+    cols = st.columns(3)
+    for i, subject in enumerate(ALLOWED_SUBJECTS):
+        with cols[i % 3]:
+            priorities[subject] = st.select_slider(
+                f"{SUBJECT_DISPLAY_NAMES[subject]}",
+                options=["Low", "Medium", "High"],
+                value=student_data.get("subject_priorities", {}).get(subject, "Medium")
+            )
+    
+    # Generate/Update Plan
+    if st.button("Generate Study Plan"):
+        with st.spinner("Analyzing your preferences and generating personalized study plan..."):
+            # Save preferences
+            student_data["study_preferences"] = {
+                "weekly_hours": weekly_hours,
+                "preferred_times": study_times,
+                "learning_styles": {
+                    "visual": visual,
+                    "auditory": auditory,
+                    "practical": practical
+                }
+            }
+            student_data["subject_priorities"] = priorities
+            student_manager.update_student_data(st.session_state.student_id, student_data)
+            
+            # Display generated plan
+            st.markdown("### 📅 Your Weekly Study Schedule")
+            
+            # Create schedule grid
+            schedule = generate_study_schedule(student_data)
+            for day, sessions in schedule.items():
+                with st.expander(f"📆 {day}", expanded=True):
+                    for session in sessions:
+                        st.markdown(f"""
+                        * **{session['time']}**: {session['subject']} - {session['topic']}
+                          * Focus: {session['focus']}
+                          * Learning Style: {session['style']}
+                        """)
+            
+            # Progress tracking
+            st.markdown("### 📊 Progress Overview")
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                st.metric("Weekly Progress", f"{student_data.get('weekly_progress', 0)}%", "+5%")
+            with col2:
+                st.metric("Topics Covered", str(student_data.get('topics_covered', 0)), "+2")
+            with col3:
+                st.metric("Study Streak", f"{student_data.get('study_streak', 0)} days", "+1")
 
 
 # App configuration
@@ -364,6 +768,50 @@ st.markdown("""
     .chat-message .message-content .message p {
         margin: 0;
     }
+    .feature-description {
+        background-color: rgba(30, 136, 229, 0.1);
+        border-left: 4px solid #1E88E5;
+        padding: 1rem;
+        margin: 1rem 0;
+        border-radius: 0 4px 4px 0;
+        font-size: 1.1em;
+        line-height: 1.6;
+    }
+    
+    /* Study Plan Styles */
+    .stSlider {
+        padding: 1rem 0;
+    }
+    
+    .study-session {
+        background-color: #2b313e;
+        padding: 1rem;
+        border-radius: 8px;
+        margin: 0.5rem 0;
+    }
+    
+    .study-session:hover {
+        transform: translateY(-2px);
+        transition: transform 0.2s ease;
+    }
+    
+    .metric-card {
+        background-color: #1E88E5;
+        color: white;
+        padding: 1rem;
+        border-radius: 8px;
+        text-align: center;
+    }
+    
+    .metric-card h3 {
+        margin: 0;
+        font-size: 2em;
+    }
+    
+    .metric-card p {
+        margin: 0;
+        opacity: 0.8;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -382,15 +830,6 @@ if "current_topic" not in st.session_state:
 
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
-
-if "practice_questions" not in st.session_state:
-    st.session_state.practice_questions = None
-
-if "questions_asked" not in st.session_state:
-    st.session_state.questions_asked = 0
-
-if "correct_answers" not in st.session_state:
-    st.session_state.correct_answers = 0
 
 # Main app logic
 if not st.session_state.authenticated:
@@ -421,7 +860,8 @@ else:
         st.write(f"Grade: {student_data['grade']}")
 
         # Display badges
-        if student_data["badges"]:
+        if student_data.get("badges"):
+            st.divider()
             st.subheader("Your Badges")
             badges_html = ""
             for badge in student_data["badges"]:
@@ -463,13 +903,16 @@ else:
             st.rerun()
 
     # Main content
-    tab1, tab2, tab3 = st.tabs(["Tutor Chat", "Practice Questions", "My Progress"])
+    tab1, tab2, tab3, tab4 = st.tabs(["Study Plan", "Tutor Chat", "Practice Questions", "My Progress"])
 
     with tab1:
-        display_chat()
+        display_study_plan()
 
     with tab2:
-        display_practice()
+        display_chat()
 
     with tab3:
+        display_practice()
+
+    with tab4:
         display_progress() 

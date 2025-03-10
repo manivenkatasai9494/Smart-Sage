@@ -101,24 +101,178 @@ class AITutorService:
                 "audio_file": None
             }
 
-    def generate_practice_questions(self, subject, topic, difficulty="medium"):
+    def generate_practice_questions(self, subject, topic, difficulty="medium", question_type="Multiple Choice", num_questions=5):
         """Generate practice questions based on subject and topic"""
         try:
-            prompt = f"""Generate 3 practice questions for {subject} topic: {topic}
-            Difficulty level: {difficulty}
-            Include:
-            1. Clear question statement
-            2. Multiple choice options
-            3. Correct answer
-            4. Brief explanation
-            
-            Format the output in markdown."""
-            
+            # Initialize chat session if not exists
             chat_session = self.get_chat_session(subject)
-            response = chat_session.send_message(prompt)
-            return response.text
+            
+            if question_type == "Multiple Choice":
+                prompt = f"""Generate {num_questions} {difficulty} level multiple-choice questions about {topic} in {subject}.
+                For each question, provide:
+                1. Clear question statement
+                2. Four options (A, B, C, D)
+                3. Correct answer
+                4. Brief explanation why the answer is correct
+                
+                Return the response in this exact JSON format:
+                [
+                    {{
+                        "question": "What is...",
+                        "options": ["A) ...", "B) ...", "C) ...", "D) ..."],
+                        "correct_answer": "A) ...",
+                        "explanation": "This is correct because..."
+                    }},
+                    ...
+                ]"""
+            else:
+                prompt = f"""Generate {num_questions} {difficulty} level open-ended questions about {topic} in {subject}.
+                For each question, provide:
+                1. Clear question statement
+                2. Key points that should be included in the answer
+                3. Sample correct answer
+                4. Evaluation criteria
+                
+                Return the response in this exact JSON format:
+                [
+                    {{
+                        "question": "What is...",
+                        "key_points": ["point1", "point2", "point3"],
+                        "sample_answer": "A detailed answer...",
+                        "evaluation_criteria": "Look for these aspects..."
+                    }},
+                    ...
+                ]"""
+            
+            # Send message using the initialized chat session
+            try:
+                response = chat_session.send_message(prompt)
+                
+                # Extract JSON from response
+                import json
+                import re
+
+                # Find JSON array in the response
+                json_match = re.search(r'\[.*\]', response.text, re.DOTALL)
+                if json_match:
+                    try:
+                        questions = json.loads(json_match.group())
+                        if questions and isinstance(questions, list):
+                            return questions[:num_questions]  # Ensure we return the requested number of questions
+                    except json.JSONDecodeError:
+                        print("Failed to parse JSON from match")
+                
+                # If we get here, either no JSON array was found or parsing failed
+                return self._get_offline_questions(subject, topic, question_type, num_questions)
+                
+            except Exception as e:
+                print(f"API request failed: {str(e)}")
+                return self._get_offline_questions(subject, topic, question_type, num_questions)
+            
         except Exception as e:
-            return f"Error generating questions: {str(e)}"
+            print(f"Error generating questions: {str(e)}")
+            return self._get_offline_questions(subject, topic, question_type, num_questions)
+
+    def _get_offline_questions(self, subject, topic, question_type, num_questions):
+        """Get pre-defined offline questions when API is unavailable"""
+        if question_type == "Multiple Choice":
+            # Basic programming questions
+            programming_questions = [
+                {
+                    "question": "What is the primary purpose of a variable in programming?",
+                    "options": [
+                        "A) To store and manage data",
+                        "B) To create user interfaces",
+                        "C) To connect to databases",
+                        "D) To format code"
+                    ],
+                    "correct_answer": "A) To store and manage data",
+                    "explanation": "Variables are fundamental containers used to store and manage data in programming."
+                },
+                {
+                    "question": "Which of the following is a correct way to comment code in Python?",
+                    "options": [
+                        "A) // This is a comment",
+                        "B) /* This is a comment */",
+                        "C) # This is a comment",
+                        "D) -- This is a comment"
+                    ],
+                    "correct_answer": "C) # This is a comment",
+                    "explanation": "In Python, single-line comments start with the # symbol."
+                },
+                {
+                    "question": "What is the purpose of a loop in programming?",
+                    "options": [
+                        "A) To store multiple values",
+                        "B) To repeat a block of code",
+                        "C) To define functions",
+                        "D) To import libraries"
+                    ],
+                    "correct_answer": "B) To repeat a block of code",
+                    "explanation": "Loops are used to execute a block of code multiple times based on a condition."
+                },
+                {
+                    "question": "What is a function in programming?",
+                    "options": [
+                        "A) A type of variable",
+                        "B) A reusable block of code",
+                        "C) A database connection",
+                        "D) A file format"
+                    ],
+                    "correct_answer": "B) A reusable block of code",
+                    "explanation": "Functions are reusable blocks of code that perform specific tasks when called."
+                },
+                {
+                    "question": "What is the purpose of conditional statements (if/else)?",
+                    "options": [
+                        "A) To create loops",
+                        "B) To define variables",
+                        "C) To make decisions in code",
+                        "D) To format output"
+                    ],
+                    "correct_answer": "C) To make decisions in code",
+                    "explanation": "Conditional statements allow programs to make decisions based on specific conditions."
+                }
+            ]
+            return programming_questions[:num_questions]
+        else:
+            # Basic open-ended questions
+            open_ended_questions = [
+                {
+                    "question": "Explain the concept of variables in programming and provide examples.",
+                    "key_points": [
+                        "Definition of variables",
+                        "Types of variables",
+                        "Variable naming conventions",
+                        "Examples of variable usage"
+                    ],
+                    "sample_answer": "Variables are containers for storing data values...",
+                    "evaluation_criteria": "Understanding of basic programming concepts"
+                },
+                {
+                    "question": "Describe the importance of functions in programming and how they are used.",
+                    "key_points": [
+                        "Purpose of functions",
+                        "Function components",
+                        "Function parameters and return values",
+                        "Benefits of using functions"
+                    ],
+                    "sample_answer": "Functions are reusable blocks of code that help organize and modularize programs...",
+                    "evaluation_criteria": "Clear explanation of function concepts and benefits"
+                },
+                {
+                    "question": "What are loops in programming and when should they be used?",
+                    "key_points": [
+                        "Types of loops",
+                        "Loop control structures",
+                        "Use cases for loops",
+                        "Loop efficiency considerations"
+                    ],
+                    "sample_answer": "Loops are control structures used to repeat a block of code...",
+                    "evaluation_criteria": "Understanding of loop concepts and applications"
+                }
+            ]
+            return open_ended_questions[:num_questions]
 
     def evaluate_answer(self, question, student_answer, subject, grade_level):
         """Evaluate student's answer and provide feedback"""

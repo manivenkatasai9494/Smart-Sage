@@ -1,0 +1,50 @@
+{
+    "name": "mani",
+    "grade": 12,
+    "courses": [
+        "Python Programming",
+        "Stacks & Queues",
+        "HTML & CSS",
+        "Android Development",
+        "Machine Learning Basics",
+        "Clean Code",
+        "Network Security",
+        "Database Design",
+        "System Security",
+        "Computer Organization"
+    ],
+    "joined_date": "2025-03-10T10:12:18.358296",
+    "last_active": "2025-03-10T10:13:26.057627",
+    "progress": {},
+    "badges": [],
+    "preferences": {
+        "language": "en",
+        "difficulty_level": "medium"
+    },
+    "study_preferences": {
+        "weekly_hours": 24,
+        "preferred_times": [
+            "Morning (9-12 PM)",
+            "Night (8-11 PM)"
+        ],
+        "learning_styles": {
+            "visual": true,
+            "auditory": false,
+            "practical": false
+        }
+    },
+    "subject_priorities": {
+        "programming": "High",
+        "web_dev": "High",
+        "mobile_dev": "Medium",
+        "ai": "Medium",
+        "software_eng": "Medium",
+        "networks": "Medium",
+        "databases": "Medium",
+        "os": "Medium",
+        "architecture": "Medium"
+    },
+    "weekly_progress": 0,
+    "topics_covered": 0,
+    "study_streak": 11
+}

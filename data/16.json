@@ -1,0 +1,66 @@
+{
+    "name": "ss",
+    "grade": 1,
+    "courses": [
+        "Java Programming"
+    ],
+    "joined_date": "2025-03-10T10:19:46.486867",
+    "last_active": "2025-03-10T11:40:07.740911",
+    "progress": {
+        "programming": {
+            "Python": [
+                0.0,
+                40.0
+            ]
+        }
+    },
+    "badges": [],
+    "preferences": {
+        "language": "en",
+        "difficulty_level": "medium"
+    },
+    "study_preferences": {
+        "weekly_hours": 20,
+        "preferred_times": [
+            "Morning (9-12 PM)",
+            "Evening (4-8 PM)"
+        ],
+        "learning_styles": {
+            "visual": true,
+            "auditory": false,
+            "practical": false
+        }
+    },
+    "subject_priorities": {
+        "programming": "High",
+        "web_dev": "Medium",
+        "mobile_dev": "Medium",
+        "ai": "Low",
+        "software_eng": "Low",
+        "networks": "Low",
+        "databases": "Medium",
+        "os": "Medium",
+        "architecture": "Low"
+    },
+    "weekly_progress": 0,
+    "topics_covered": 0,
+    "study_streak": 152,
+    "topic_progress": {
+        "Variables & Data Types": true,
+        "Control Flow": false,
+        "API Integration": true,
+        "Object-Oriented Programming": false,
+        "Functions": true,
+        "Error Handling": true,
+        "File I/O": true,
+        "Stacks & Queues": false,
+        "Arrays & Lists": false,
+        "Graphs": true,
+        "Agile Practices": true
+    },
+    "login_tracking": {
+        "last_login": "2025-03-10T11:39:41.375055",
+        "continuous_streak": 1,
+        "total_logins": 1
+    }
+}
