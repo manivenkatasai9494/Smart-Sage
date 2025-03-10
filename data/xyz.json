@@ -1,0 +1,35 @@
+{
+    "name": "mani",
+    "grade": 1,
+    "courses": [
+        "AI Ethics"
+    ],
+    "password": "saharsh",
+    "joined_date": "2025-03-10T14:57:10.464412",
+    "last_active": "2025-03-10T15:01:04.397337",
+    "progress": {},
+    "badges": [],
+    "preferences": {
+        "language": "en",
+        "difficulty_level": "medium"
+    },
+    "study_preferences": {
+        "weekly_hours": 20,
+        "preferred_times": [
+            "Morning (9-12 PM)"
+        ],
+        "learning_styles": {
+            "visual": true,
+            "auditory": false,
+            "practical": false
+        }
+    },
+    "subject_priorities": {},
+    "weekly_progress": 0,
+    "topics_covered": 0,
+    "login_tracking": {
+        "last_login": "2025-03-10T14:57:23.489542",
+        "login_streak": 1
+    },
+    "study_streak": 8
+}

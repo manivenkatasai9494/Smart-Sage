@@ -5,14 +5,19 @@
         "Python Programming",
         "SQL Database",
         "Deep Learning",
-        "Natural Language Processing"
+        "Natural Language Processing",
+        "Python",
+        "JavaScript"
     ],
     "password": "987654",
     "joined_date": "2025-03-10T12:32:14.795115",
-    "last_active": "2025-03-10T12:41:27.816727",
+    "last_active": "2025-03-10T19:58:46.749062",
     "progress": {
         "programming": {
             "C++": [
+                20.0
+            ],
+            "Python": [
                 20.0
             ]
         }
@@ -20,16 +25,18 @@
     "badges": [],
     "preferences": {
         "language": "en",
-        "difficulty_level": "medium"
+        "difficulty_level": "medium",
+        "theme": "Dark",
+        "notifications": true
     },
     "study_preferences": {
-        "weekly_hours": 17,
+        "weekly_hours": 7,
         "preferred_times": [
             "Night (8-11 PM)"
         ],
         "learning_styles": {
             "visual": true,
-            "auditory": false,
+            "auditory": true,
             "practical": false
         }
     },
@@ -47,11 +54,18 @@
     "weekly_progress": 0,
     "topics_covered": 0,
     "login_tracking": {
-        "last_login": "2025-03-10T12:39:03.351708",
+        "last_login": "2025-03-10T19:57:39.912352",
         "login_streak": 1
     },
-    "study_streak": 35,
+    "study_streak": 140,
     "topic_progress": {
-        "Variables & Data Types": false
+        "Variables & Data Types": true,
+        "Control Flow": true,
+        "Functions": true,
+        "Object-Oriented Programming": true,
+        "File I/O": true,
+        "Arrays & Lists": true,
+        "Heaps": true,
+        "Graphs": true
     }
 }

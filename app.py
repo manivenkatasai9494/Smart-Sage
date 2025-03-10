@@ -1,3 +1,4 @@
+import base64
 import os
 from datetime import datetime
 
@@ -16,6 +17,161 @@ from study_planner import StudyPlanner, generate_study_schedule
 def init_services():
     return AITutorService(), StudentManager()
 
+# Define courses dictionary
+courses = {
+    "Programming": [
+        "Python",
+        "Java",
+        "JavaScript",
+        "C++",
+        "SQL"
+    ],
+    "Web Development": [
+        "HTML/CSS",
+        "React",
+        "Node.js",
+        "MongoDB",
+        "APIs"
+    ],
+    "Mobile Development": [
+        "Android Development",
+        "iOS Development",
+        "React Native",
+        "Flutter",
+        "Mobile UI/UX"
+    ],
+    "Artificial Intelligence": [
+        "Machine Learning",
+        "Deep Learning",
+        "Neural Networks",
+        "Computer Vision",
+        "Natural Language Processing"
+    ],
+    "Software Engineering": [
+        "Software Design Patterns",
+        "Clean Code",
+        "Testing & QA",
+        "DevOps & CI/CD",
+        "Agile Methodologies"
+    ],
+    "Computer Networks": [
+        "Network Protocols",
+        "Network Security",
+        "Cloud Computing",
+        "Distributed Systems",
+        "Cybersecurity"
+    ],
+    "Database Systems": [
+        "SQL Advanced",
+        "NoSQL Databases",
+        "Database Design",
+        "Data Warehousing",
+        "Big Data"
+    ],
+    "Operating Systems": [
+        "Process Management",
+        "Memory Management",
+        "File Systems",
+        "System Security",
+        "Shell Scripting"
+    ],
+    "Computer Architecture": [
+        "Digital Logic",
+        "Computer Organization",
+        "Assembly Language",
+        "Microprocessors",
+        "Embedded Systems"
+    ]
+}
+
+def display_sidebar_profile(student_data):
+    """Display user profile in sidebar"""
+    with st.sidebar:
+        st.markdown("""
+            <div class="profile-section">
+                <img src="https://img.icons8.com/color/96/000000/user-male-circle.png" class="profile-image">
+                <h3>{}</h3>
+                <p>Grade {}</p>
+            </div>
+        """.format(student_data["name"], student_data["grade"]), unsafe_allow_html=True)
+        
+        # Study Stats
+        st.markdown("### 📊 Study Stats")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("Questions", st.session_state.get("questions_asked", 0))
+        with col2:
+            correct = st.session_state.get("correct_answers", 0)
+            total = st.session_state.get("questions_asked", 0)
+            accuracy = (correct / total * 100) if total > 0 else 0
+            st.metric("Accuracy", f"{accuracy:.1f}%")
+        
+        # Course Categories with Interactive Checkboxes
+        st.markdown("### 📚 Course Categories")
+        
+        # Initialize session state for selected category if not exists
+        if "selected_category" not in st.session_state:
+            st.session_state.selected_category = None
+        
+        # Display course categories with checkboxes
+        for category in courses.keys():
+            is_selected = st.checkbox(
+                category,
+                key=f"category_{category}",
+                value=category == st.session_state.selected_category
+            )
+            if is_selected:
+                st.session_state.selected_category = category
+                st.session_state.subject = category.lower().replace(" ", "_")
+                st.session_state.current_topic = courses[category][0]  # Set first course as default
+                st.rerun()
+        
+        # Settings
+        st.markdown("### ⚙️ Settings")
+        
+        # Language selection
+        if "preferences" not in student_data:
+            student_data["preferences"] = {}
+        if "language" not in student_data["preferences"]:
+            student_data["preferences"]["language"] = "English"
+        
+        language = st.selectbox(
+            "Language",
+            ["English", "Spanish", "French", "German", "Chinese"],
+            index=["English", "Spanish", "French", "German", "Chinese"].index(student_data["preferences"]["language"])
+        )
+        
+        # Theme selection
+        if "theme" not in student_data["preferences"]:
+            student_data["preferences"]["theme"] = "Dark"
+        
+        theme = st.selectbox(
+            "Theme",
+            ["Dark", "Light"],
+            index=["Dark", "Light"].index(student_data["preferences"]["theme"])
+        )
+        
+        # Notification settings
+        if "notifications" not in student_data["preferences"]:
+            student_data["preferences"]["notifications"] = True
+        
+        notifications = st.checkbox("Enable Notifications", value=student_data["preferences"]["notifications"])
+        
+        # Save settings
+        if st.button("Save Settings"):
+            student_data["preferences"].update({
+                "language": language,
+                "theme": theme,
+                "notifications": notifications
+            })
+            
+            student_manager.update_student_data(st.session_state.student_id, student_data)
+            st.success("Settings saved!")
+        
+        # Logout button
+        if st.button("Logout"):
+            st.session_state.clear()
+            st.rerun()
 
 def display_login():
     """Display login/registration form"""
@@ -198,26 +354,37 @@ def display_login():
 
 def display_chat():
     """Display chat interface"""
-    st.subheader(f"{st.session_state.subject.capitalize()} Tutor")
-
-    # Topic selection
-    topics = {
-        "programming": ["Python", "Java", "C++", "JavaScript", "SQL"],
-        "web_dev": ["HTML/CSS", "React", "Node.js", "MongoDB", "APIs"],
-        "mobile_dev": ["Android", "iOS", "React Native", "Flutter", "UI/UX"],
-        "ai": ["Machine Learning", "Deep Learning", "Computer Vision", "NLP", "AI Ethics"],
-        "software_eng": ["Design Patterns", "Clean Code", "Testing", "DevOps", "Agile"],
-        "networks": ["Protocols", "Security", "Cloud", "Distributed Systems", "Cybersecurity"],
-        "databases": ["SQL", "NoSQL", "Design", "Big Data", "Analytics"],
-        "os": ["Process Management", "Memory", "File Systems", "Security", "Shell Scripting"],
-        "architecture": ["Digital Logic", "Organization", "Assembly", "Microprocessors", "Embedded"]
+    # Convert subject name to proper format for display
+    subject_display_names = {
+        "programming": "Programming",
+        "web_dev": "Web Development",
+        "mobile_dev": "Mobile Development",
+        "ai": "Artificial Intelligence",
+        "software_eng": "Software Engineering",
+        "networks": "Computer Networks",
+        "dbms": "Database Systems",
+        "os": "Operating Systems",
+        "computer_arch": "Computer Architecture"
     }
+    
+    display_subject = subject_display_names.get(st.session_state.subject, 
+                                              st.session_state.subject.replace('_', ' ').title())
+    st.subheader(f"{display_subject} Tutor")
+
+    # Get the list of courses for the selected subject
+    selected_courses = courses.get(display_subject, [])
+    
+    # If no courses found for the subject, show error
+    if not selected_courses:
+        st.error(f"No courses found for {display_subject}")
+        return
 
     col1, col2 = st.columns([3, 1])
     with col1:
+        # Topic selection using the courses dictionary
         st.session_state.current_topic = st.selectbox(
-            "Select Topic",
-            topics[st.session_state.subject],
+            "Select Course/Topic",
+            selected_courses,
             index=0
         )
 
@@ -270,7 +437,16 @@ def display_chat():
         # Get student data
         student_data = student_manager.get_student_data(st.session_state.student_id)
         grade_level = student_data["grade"]
-        language = student_data["preferences"]["language"]
+        
+        # Convert UI language name to language code
+        language_mapping = {
+            "English": "en",
+            "Spanish": "es",
+            "French": "fr",
+            "German": "de",
+            "Chinese": "zh"
+        }
+        language = language_mapping.get(student_data["preferences"]["language"], "en")
 
         # Get AI response
         with st.spinner("Thinking..."):
@@ -313,6 +489,13 @@ def display_practice():
     if "correct_answers" not in st.session_state:
         st.session_state.correct_answers = 0
 
+    # Get the current course and subject
+    current_course = st.session_state.current_topic
+    current_subject = st.session_state.subject
+
+    # Display current course info
+    st.info(f"Current Course: {current_course} ({current_subject.capitalize()})")
+
     # Question type selection
     question_type = st.radio(
         "Select Question Type",
@@ -328,9 +511,9 @@ def display_practice():
         with st.spinner("Generating questions..."):
             try:
                 questions = ai_tutor.generate_practice_questions(
-                    subject=st.session_state.subject,
-                    topic=st.session_state.current_topic,
-                    difficulty=student_data["preferences"]["difficulty_level"],
+                    subject=current_subject,
+                    topic=current_course,
+                    difficulty=student_data["preferences"].get("difficulty_level", "medium"),
                     question_type=question_type,
                     num_questions=num_questions
                 )
@@ -413,7 +596,7 @@ def display_practice():
                         evaluation = ai_tutor.evaluate_answer(
                             question=question.get("question", ""),
                             student_answer=answer,
-                            subject=st.session_state.subject,
+                            subject=current_subject,
                             grade_level=student_data["grade"]
                         )
                         st.markdown(evaluation)
@@ -434,13 +617,13 @@ def display_practice():
             student_data = student_manager.get_student_data(st.session_state.student_id)
             if "progress" not in student_data:
                 student_data["progress"] = {}
-            if st.session_state.subject not in student_data["progress"]:
-                student_data["progress"][st.session_state.subject] = {}
+            if current_subject not in student_data["progress"]:
+                student_data["progress"][current_subject] = {}
             
             # Update topic progress
-            topic_progress = student_data["progress"][st.session_state.subject].get(st.session_state.current_topic, [])
+            topic_progress = student_data["progress"][current_subject].get(current_course, [])
             topic_progress.append(st.session_state.score)
-            student_data["progress"][st.session_state.subject][st.session_state.current_topic] = topic_progress
+            student_data["progress"][current_subject][current_course] = topic_progress
             
             # Update total questions and correct answers
             st.session_state.questions_asked += len(st.session_state.practice_questions)
@@ -702,6 +885,200 @@ def display_study_plan():
                 st.metric("Study Streak", f"{student_data.get('study_streak', 0)} days", "+1")
 
 
+def display_about():
+    """Display About Us section"""
+    st.title("About StudyBud")
+    
+    # Mission and Vision
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("### 🎯 Our Mission")
+        st.info("To revolutionize online learning through AI-powered personalized education, making quality education accessible to everyone.")
+    
+    with col2:
+        st.markdown("### 👁️ Our Vision")
+        st.info("To become the leading AI-driven educational platform that transforms how students learn and master technical subjects.")
+
+    # Features
+    st.markdown("## 🌟 Why Choose StudyBud?")
+    feat_col1, feat_col2, feat_col3, feat_col4 = st.columns(4)
+    
+    with feat_col1:
+        st.markdown("### 🤖 AI-Powered Learning")
+        st.write("Advanced AI tutoring system that adapts to your learning style and pace.")
+    
+    with feat_col2:
+        st.markdown("### 📊 Progress Tracking")
+        st.write("Comprehensive progress monitoring and performance analytics.")
+    
+    with feat_col3:
+        st.markdown("### 🎯 Personalized Plans")
+        st.write("Custom study schedules based on your goals and preferences.")
+    
+    with feat_col4:
+        st.markdown("### 🏆 Achievement System")
+        st.write("Gamified learning experience with badges and rewards.")
+
+    # Team
+    st.markdown("## 👥 Our Team")
+    team_col1, team_col2, team_col3 = st.columns(3)
+    
+    with team_col1:
+        st.image("https://img.icons8.com/color/96/000000/administrator-male.png", width=120)
+        st.markdown("### Dr. Sarah Johnson")
+        st.write("Lead AI Researcher")
+    
+    with team_col2:
+        st.image("https://img.icons8.com/color/96/000000/administrator-female.png", width=120)
+        st.markdown("### Prof. Michael Chen")
+        st.write("Education Director")
+    
+    with team_col3:
+        st.image("https://img.icons8.com/color/96/000000/user-male.png", width=120)
+        st.markdown("### Alex Thompson")
+        st.write("Lead Developer")
+
+
+def display_contact():
+    """Display Contact Us section"""
+    st.title("Contact Us")
+    
+    # Contact Information
+    info_col1, info_col2 = st.columns(2)
+    
+    with info_col1:
+        st.markdown("### 📍 Our Location")
+        st.write("123 Education Street")
+        st.write("Tech Valley, CA 94025")
+        st.write("United States")
+        
+        st.markdown("### 📞 Phone")
+        st.write("+1 (555) 123-4567")
+        
+        st.markdown("### ✉️ Email")
+        st.write("support@studybud.com")
+    
+    with info_col2:
+        st.markdown("### ⏰ Hours of Operation")
+        st.write("Monday - Friday: 9:00 AM - 6:00 PM PST")
+        st.write("Saturday: 10:00 AM - 4:00 PM PST")
+        st.write("Sunday: Closed")
+    
+    # Contact Form
+    st.markdown("## 📝 Send us a Message")
+    
+    form_col1, form_col2 = st.columns(2)
+    with form_col1:
+        name = st.text_input("Your Name")
+        email = st.text_input("Your Email")
+    
+    with form_col2:
+        subject = st.text_input("Subject")
+        message = st.text_area("Message")
+    
+    if st.button("Send Message", type="primary"):
+        if name and email and subject and message:
+            st.success("Thank you for your message! We'll get back to you soon.")
+        else:
+            st.error("Please fill in all fields.")
+    
+    # Social Links
+    st.markdown("## 🌐 Follow Us")
+    social_col1, social_col2, social_col3, social_col4 = st.columns(4)
+    
+    with social_col1:
+        st.image("https://img.icons8.com/color/48/000000/facebook-new.png", width=40)
+        st.write("[Facebook](#)")
+    
+    with social_col2:
+        st.image("https://img.icons8.com/color/48/000000/twitter.png", width=40)
+        st.write("[Twitter](#)")
+    
+    with social_col3:
+        st.image("https://img.icons8.com/color/48/000000/linkedin.png", width=40)
+        st.write("[LinkedIn](#)")
+    
+    with social_col4:
+        st.image("https://img.icons8.com/color/48/000000/instagram-new.png", width=40)
+        st.write("[Instagram](#)")
+
+def display_courses():
+    """Display courses dashboard"""
+    st.title("📚 Course Dashboard")
+    
+    # Get student data
+    student_data = student_manager.get_student_data(st.session_state.student_id)
+    
+    # Course category selection
+    st.markdown("### Select Course Category")
+    selected_category = st.selectbox(
+        "Choose a Category",
+        list(courses.keys()),
+        key="category_selection",
+        help="Select a course category to view available courses"
+    )
+    
+    if selected_category:
+        # Update session state with selected category
+        st.session_state.subject = selected_category.lower().replace(" ", "_")
+        
+        # Display courses for selected category
+        st.markdown(f"### Available Courses in {selected_category}")
+        
+        # Create columns for course cards
+        cols = st.columns(2)
+        
+        for idx, course in enumerate(courses[selected_category]):
+            with cols[idx % 2]:
+                st.markdown(f"""
+                <div class="course-card">
+                    <div class="course-icon">📚</div>
+                    <h3>{course}</h3>
+                    <div class="course-details">
+                        <span class="course-level">Level: {'Beginner' if idx < 2 else 'Intermediate' if idx < 4 else 'Advanced'}</span>
+                        <span class="course-duration">Duration: 8 weeks</span>
+                    </div>
+                    <div class="course-description">
+                        Master {course} fundamentals and advanced concepts through interactive learning.
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Add buttons for each course
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.button("Start Learning", key=f"start_{course}"):
+                        st.session_state.current_topic = course
+                        st.session_state.current_course = course
+                        st.session_state.active_tab = "🤖 AI Tutor"
+                        st.rerun()
+                
+                with col2:
+                    if st.button("Text-to-Speech", key=f"tts_{course}"):
+                        # Generate course description for TTS
+                        description = f"Welcome to {course}. This is a {selected_category} course. "
+                        description += "You will learn fundamental concepts and advanced topics. "
+                        description += "The course duration is 8 weeks. "
+                        description += "Let's begin your learning journey!"
+                        
+                        # Use browser's built-in speech synthesis
+                        st.markdown(f"""
+                        <script>
+                            const utterance = new SpeechSynthesisUtterance("{description}");
+                            utterance.lang = "en-US";
+                            window.speechSynthesis.speak(utterance);
+                        </script>
+                        """, unsafe_allow_html=True)
+        
+        # Update student's courses if not already enrolled
+        if "courses" not in student_data:
+            student_data["courses"] = []
+        for course in courses[selected_category]:
+            if course not in student_data["courses"]:
+                student_data["courses"].append(course)
+        student_manager.update_student_data(st.session_state.student_id, student_data)
+
 # App configuration
 st.set_page_config(
     page_title=APP_NAME,
@@ -716,113 +1093,367 @@ ai_tutor, student_manager = init_services()
 # Custom CSS
 st.markdown("""
 <style>
+    /* Global Styles */
+    [data-testid="stAppViewContainer"] {
+        background: #1a1a1a;
+        color: #e0e0e0;
+    }
+    
+    /* Dark theme overlay */
+    [data-testid="stAppViewContainer"]::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(26, 26, 26, 0.85);
+        z-index: -1;
+    }
+    
+    /* Light theme overlay */
+    [data-testid="stAppViewContainer"][data-theme="light"]::before {
+        background: rgba(255, 255, 255, 0.85);
+    }
+    
     .main-header {
-        color: #1E88E5;
-        text-align: center;
-        font-size: 3em;
-        margin-bottom: 20px;
-    }
-    .subheader {
-        color: #424242;
-        text-align: center;
-        font-size: 1.5em;
-        margin-bottom: 30px;
-    }
-    .badge {
-        background-color: #1E88E5;
+        background: linear-gradient(135deg, #2c3e50, #1a1a1a);
         color: white;
-        padding: 5px 10px;
-        border-radius: 10px;
-        margin: 5px;
-        display: inline-block;
+        padding: 3rem;
+        border-radius: 15px;
+        margin-bottom: 2rem;
+        text-align: center;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
     }
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
+    
+    .subheader {
+        color: #b0b0b0;
+        text-align: center;
+        font-size: 1.3em;
+        margin: 1rem 0 2rem;
+        font-weight: 300;
     }
-    .stTabs [data-baseweb="tab"] {
-        height: 50px;
-        white-space: pre-wrap;
-        border-radius: 4px 4px 0px 0px;
-        padding: 10px 16px;
-        background-color: #33373b;
-    }
-    .stTabs [aria-selected="true"] {
-        background-color: #1E88E5 !important;
-        color: white !important;
-    }
-    .chat-message {
+    
+    /* Cards and Containers */
+    .stCard {
+        background: #2c2c2c;
+        color: #e0e0e0;
         padding: 1.5rem;
-        border-radius: 0.5rem;
-        margin-bottom: 1rem;
-        display: flex;
-        flex-direction: column;
-    }
-    .chat-message.user {
-        background-color: #2b313e;
-    }
-    .chat-message.bot {
-        background-color: #475063;
-    }
-    .chat-message .message-content {
-        display: flex;
-        margin-bottom: 0.5rem;
-    }
-    .chat-message .message-content img {
-        width: 42px;
-        height: 42px;
-        border-radius: 3px;
-        margin-right: 1rem;
-    }
-    .chat-message .message-content .message {
-        padding: 0.5rem 1rem;
-        border-radius: 3px;
-    }
-    .chat-message .message-content .message p {
-        margin: 0;
-    }
-    .feature-description {
-        background-color: rgba(30, 136, 229, 0.1);
-        border-left: 4px solid #1E88E5;
-        padding: 1rem;
+        border-radius: 10px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.2);
         margin: 1rem 0;
-        border-radius: 0 4px 4px 0;
-        font-size: 1.1em;
-        line-height: 1.6;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
     
-    /* Study Plan Styles */
-    .stSlider {
-        padding: 1rem 0;
+    .stCard:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        background: #323232;
     }
     
-    .study-session {
-        background-color: #2b313e;
-        padding: 1rem;
-        border-radius: 8px;
+    /* Sidebar Styling */
+    [data-testid="stSidebar"] {
+        background-color: #2c2c2c;
+        padding: 2rem 1rem;
+        box-shadow: 2px 0 10px rgba(0,0,0,0.2);
+    }
+    
+    [data-testid="stSidebar"] .stButton>button {
+        width: 100%;
         margin: 0.5rem 0;
     }
     
-    .study-session:hover {
-        transform: translateY(-2px);
-        transition: transform 0.2s ease;
-    }
-    
-    .metric-card {
-        background-color: #1E88E5;
+    /* Buttons and Interactive Elements */
+    .stButton>button {
+        background: linear-gradient(135deg, #2c3e50, #34495e);
         color: white;
-        padding: 1rem;
+        border: none;
+        padding: 0.75rem 1.5rem;
         border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    
+    .stButton>button:hover {
+        background: linear-gradient(135deg, #34495e, #2c3e50);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+    
+    /* Form Elements */
+    .stTextInput>div>div>input,
+    .stTextArea>div>div>textarea {
+        background: #2c2c2c;
+        color: #e0e0e0;
+        border: 2px solid #404040;
+        border-radius: 8px;
+        padding: 0.75rem;
+        transition: all 0.3s ease;
+    }
+    
+    .stTextInput>div>div>input:focus,
+    .stTextArea>div>div>textarea:focus {
+        border-color: #2c3e50;
+        box-shadow: 0 0 0 2px rgba(44,62,80,0.3);
+    }
+    
+    /* Progress Bars and Metrics */
+    .stProgress>div>div>div {
+        background: linear-gradient(90deg, #2c3e50, #34495e);
+        border-radius: 10px;
+    }
+    
+    [data-testid="stMetricValue"] {
+        font-size: 2rem;
+        font-weight: 600;
+        color: #3498db;
+    }
+    
+    /* Tabs Styling */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 10px;
+        background-color: #2c2c2c;
+        padding: 1rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        height: 60px;
+        background-color: transparent;
+        border: 2px solid #404040;
+        border-radius: 8px;
+        padding: 15px 25px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        color: #e0e0e0;
+    }
+    
+    .stTabs [data-baseweb="tab"]:hover {
+        background-color: #323232;
+        border-color: #2c3e50;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(135deg, #2c3e50, #34495e) !important;
+        color: white !important;
+        border: none !important;
+    }
+    
+    /* Expander Styling */
+    .streamlit-expanderHeader {
+        background: #2c2c2c;
+        border-radius: 8px;
+        padding: 1rem;
+        font-weight: 500;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        color: #e0e0e0;
+    }
+    
+    /* Chat Interface */
+    [data-testid="stChatMessage"] {
+        background: #2c2c2c;
+        border-radius: 12px;
+        padding: 1rem;
+        margin: 0.5rem 0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        color: #e0e0e0;
+    }
+    
+    /* Alerts and Notifications */
+    .stAlert {
+        background: #2c2c2c;
+        border-radius: 10px;
+        padding: 1rem;
+        margin: 1rem 0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        color: #e0e0e0;
+    }
+    
+    /* Custom Classes */
+    .feature-card {
+        background: #2c2c2c;
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         text-align: center;
+        transition: transform 0.3s ease;
+        color: #e0e0e0;
     }
     
-    .metric-card h3 {
-        margin: 0;
-        font-size: 2em;
+    .feature-card:hover {
+        transform: translateY(-5px);
+        background: #323232;
     }
     
-    .metric-card p {
-        margin: 0;
-        opacity: 0.8;
+    .feature-icon {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        color: #3498db;
+    }
+    
+    .achievement-card {
+        background: linear-gradient(135deg, #2c3e50, #34495e);
+        color: white;
+        padding: 2rem;
+        border-radius: 12px;
+        text-align: center;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    
+    .profile-section {
+        text-align: center;
+        padding: 2rem;
+        background: #2c2c2c;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        color: #e0e0e0;
+    }
+    
+    .profile-image {
+        width: 120px;
+        height: 120px;
+        border-radius: 60px;
+        margin: 0 auto 1rem;
+        border: 4px solid #2c3e50;
+    }
+
+    /* Additional Dark Theme Elements */
+    .stSelectbox>div>div {
+        background-color: #2c2c2c;
+        color: #e0e0e0;
+    }
+
+    .stMultiSelect>div>div {
+        background-color: #2c2c2c;
+        color: #e0e0e0;
+    }
+
+    .stSlider>div>div {
+        background-color: #2c2c2c;
+        color: #e0e0e0;
+    }
+
+    /* Info, Success, and Error Messages */
+    .stSuccess {
+        background-color: rgba(46, 204, 113, 0.2);
+        color: #2ecc71;
+    }
+
+    .stInfo {
+        background-color: rgba(52, 152, 219, 0.2);
+        color: #3498db;
+    }
+
+    .stError {
+        background-color: rgba(231, 76, 60, 0.2);
+        color: #e74c3c;
+    }
+
+    /* Code Blocks */
+    .stCodeBlock {
+        background-color: #1a1a1a !important;
+        color: #e0e0e0 !important;
+    }
+
+    /* Tooltips */
+    .stTooltipIcon {
+        color: #3498db;
+    }
+
+    /* Radio Buttons and Checkboxes */
+    .stRadio>div {
+        color: #e0e0e0;
+    }
+
+    .stCheckbox>div {
+        color: #e0e0e0;
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .main-header {
+            padding: 2rem;
+        }
+        
+        .feature-card {
+            margin-bottom: 1rem;
+        }
+        
+        [data-testid="stMetricValue"] {
+            font-size: 1.5rem;
+        }
+    }
+
+    /* Course Card Styling */
+    .course-card {
+        background: #2c2c2c;
+        padding: 1.5rem;
+        border-radius: 12px;
+        margin: 1rem 0;
+        transition: all 0.3s ease;
+        border: 2px solid #404040;
+        height: 100%;
+    }
+    
+    .course-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        border-color: #3498db;
+        background: #323232;
+    }
+    
+    .course-icon {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        color: #3498db;
+    }
+    
+    .course-card h3 {
+        color: #e0e0e0;
+        margin: 0.5rem 0;
+        font-size: 1.3rem;
+    }
+    
+    .course-details {
+        margin: 0.5rem 0;
+        font-size: 0.9rem;
+        color: #b0b0b0;
+    }
+    
+    .course-level {
+        background: rgba(52, 152, 219, 0.2);
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        color: #3498db;
+    }
+    
+    .course-duration {
+        margin-left: 0.5rem;
+    }
+    
+    .course-description {
+        color: #b0b0b0;
+        font-size: 0.9rem;
+        margin-top: 1rem;
+        line-height: 1.4;
+    }
+    
+    /* Course Progress Bar */
+    .course-progress {
+        margin-top: 1rem;
+        background: #404040;
+        border-radius: 10px;
+        height: 6px;
+        overflow: hidden;
+    }
+    
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #3498db, #2ecc71);
+        border-radius: 10px;
+        transition: width 0.3s ease;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -843,18 +1474,46 @@ if "current_topic" not in st.session_state:
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
+if "active_tab" not in st.session_state:
+    st.session_state.active_tab = "📚 Study Plan"
+
+if "current_course" not in st.session_state:
+    st.session_state.current_course = None
+
 # Main app logic
 if not st.session_state.authenticated:
     display_login()
 else:
     # Subject selection
     st.sidebar.title("Navigation")
-    selected_subject = st.sidebar.radio(
+    
+    # Convert subject names for display
+    subject_display_names = {
+        "programming": "Programming",
+        "web_dev": "Web Development",
+        "mobile_dev": "Mobile Development",
+        "ai": "Artificial Intelligence",
+        "software_eng": "Software Engineering",
+        "networks": "Computer Networks",
+        "dbms": "Database Systems",
+        "os": "Operating Systems",
+        "computer_arch": "Computer Architecture"
+    }
+    
+    # Create a list of display names for the radio button
+    display_subjects = [subject_display_names.get(subject, subject.replace('_', ' ').title()) 
+                       for subject in ALLOWED_SUBJECTS]
+    
+    selected_display = st.sidebar.radio(
         "Choose a subject",
-        ALLOWED_SUBJECTS,
-        format_func=lambda x: SUBJECT_DISPLAY_NAMES[x],
-        index=ALLOWED_SUBJECTS.index(st.session_state.subject)
+        display_subjects,
+        index=display_subjects.index(subject_display_names.get(st.session_state.subject, 
+                                                              st.session_state.subject.replace('_', ' ').title()))
     )
+    
+    # Convert display name back to internal format
+    selected_subject = next((k for k, v in subject_display_names.items() if v == selected_display), 
+                          selected_display.lower().replace(' ', '_'))
     
     if selected_subject != st.session_state.subject:
         st.session_state.subject = selected_subject

@@ -86,17 +86,37 @@ class StudentManager:
         self._save_student_data(student_id, data)
 
     def get_recommended_topics(self, student_id: str, subject: str) -> List[str]:
-        """Get recommended topics based on student progress"""
+        """Get recommended topics based on student's performance"""
         student_data = self.get_student_data(student_id)
-        progress = student_data.get("progress", {}).get(subject, {})
+        if not student_data or "progress" not in student_data:
+            return []
         
-        # Get topics with low progress
-        weak_topics = [
-            topic for topic, score in progress.items()
-            if score < 0.7  # Topics with less than 70% mastery
-        ]
+        subject_progress = student_data["progress"].get(subject, {})
+        recommended = []
         
-        return weak_topics[:3] if weak_topics else []
+        # Get all topics for the subject
+        topics = {
+            "programming": ["Python", "Java", "C++", "JavaScript", "SQL"],
+            "web_development": ["HTML/CSS", "React", "Node.js", "MongoDB", "APIs"],
+            "data_science": ["Machine Learning", "Deep Learning", "Computer Vision", "NLP", "AI Ethics"],
+            "computer_science": ["Algorithms", "Data Structures", "Operating Systems", "Computer Networks", "Database Systems"]
+        }
+        
+        subject_topics = topics.get(subject, [])
+        
+        for topic in subject_topics:
+            if topic in subject_progress:
+                # Calculate average score for the topic
+                scores = subject_progress[topic]
+                if isinstance(scores, list) and scores:
+                    avg_score = sum(scores) / len(scores)
+                    if avg_score < 0.7:  # Topics with less than 70% mastery
+                        recommended.append(topic)
+            else:
+                # If topic hasn't been attempted yet
+                recommended.append(topic)
+        
+        return recommended[:3]  # Return top 3 recommendations
 
     def generate_performance_report(self, student_id: str) -> Union[str, Dict]:
         """Generate a performance report for the student"""
